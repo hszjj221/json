@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON 结构浏览器</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(17, 24, 39, 0.92);
+      --surface: #0b1222;
+      --border: rgba(255, 255, 255, 0.06);
+      --accent: #22d3ee;
+      --accent-2: #a855f7;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --danger: #f87171;
+      --success: #4ade80;
+      --hover: rgba(255, 255, 255, 0.04);
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      --bg-gradient:
+        radial-gradient(circle at 20% 20%, rgba(34, 211, 238, 0.12), transparent 25%),
+        radial-gradient(circle at 80% 10%, rgba(168, 85, 247, 0.16), transparent 30%),
+        linear-gradient(120deg, #0b1222, #0d1324 40%, #0b1222 80%);
+      --radius: 14px;
+    }
+
+    :root[data-theme="light"] {
+      --bg: #eef2ff;
+      --panel: #ffffff;
+      --surface: #f8fafc;
+      --border: rgba(15, 23, 42, 0.08);
+      --accent: #0ea5e9;
+      --accent-2: #6366f1;
+      --text: #0f172a;
+      --muted: #475569;
+      --danger: #dc2626;
+      --success: #15803d;
+      --hover: rgba(15, 23, 42, 0.05);
+      --shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+      --bg-gradient:
+        radial-gradient(circle at 18% 18%, rgba(14, 165, 233, 0.2), transparent 25%),
+        radial-gradient(circle at 82% 8%, rgba(99, 102, 241, 0.18), transparent 30%),
+        linear-gradient(125deg, #e8eefc, #f8fafc 45%, #e9edfa 80%);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: var(--bg);
+      background: var(--bg-gradient);
+      color: var(--text);
+      font-family: "Fira Code", "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+      padding: 24px 12px;
+    }
+
+    .shell {
+      width: min(1280px, calc(100vw - 16px));
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .title .meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .panes {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    .pane {
+      display: flex;
+      flex-direction: column;
+      min-width: 280px;
+      flex: 1 1 0;
+    }
+
+    .panel {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1 1 0;
+      min-height: 520px;
+    }
+
+    .divider {
+      width: 10px;
+      cursor: col-resize;
+      display: flex;
+      align-items: stretch;
+      position: relative;
+      user-select: none;
+    }
+
+    .divider::before {
+      content: "";
+      flex: 1;
+      margin: 6px 3px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      transition: background 0.12s ease;
+    }
+
+    .divider:hover::before,
+    .divider.dragging::before {
+      background: rgba(34, 211, 238, 0.4);
+    }
+
+    :root[data-theme="light"] .divider::before {
+      background: rgba(15, 23, 42, 0.08);
+    }
+
+    :root[data-theme="light"] .divider:hover::before,
+    :root[data-theme="light"] .divider.dragging::before {
+      background: rgba(14, 165, 233, 0.5);
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100%;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font: inherit;
+      resize: none;
+      outline: none;
+      line-height: 1.4;
+      flex: 1 1 auto;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.12s ease;
+    }
+
+    button:not(.secondary) {
+      background: linear-gradient(120deg, #22d3ee, #5b8def);
+      color: #061427;
+      box-shadow: 0 12px 28px rgba(91, 141, 239, 0.28);
+    }
+
+    :root[data-theme="light"] button:not(.secondary) {
+      background: linear-gradient(120deg, #0ea5e9, #12b981);
+      color: #0b1222;
+      box-shadow: 0 10px 22px rgba(14, 165, 233, 0.2);
+    }
+
+    button:not(.secondary):hover {
+      transform: translateY(-1px);
+      filter: brightness(1.02);
+    }
+
+    button:not(.secondary):active {
+      transform: translateY(0);
+      filter: brightness(0.98);
+    }
+
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status strong {
+      font-weight: 700;
+    }
+
+    .status .ok {
+      color: var(--success);
+    }
+
+    .status .fail {
+      color: var(--danger);
+    }
+
+    .tree {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+      overflow: auto;
+      flex: 1;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .tree ul {
+      list-style: none;
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .node {
+      position: relative;
+    }
+
+    .node-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: background 0.12s ease;
+    }
+
+    .node-header:hover {
+      background: var(--hover);
+    }
+
+    .caret {
+      width: 14px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      transition: transform 0.12s ease;
+    }
+
+    .leaf .caret {
+      visibility: hidden;
+    }
+
+    .node.collapsed .caret {
+      transform: rotate(-90deg);
+    }
+
+    .node-key {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .node-meta {
+      color: var(--muted);
+      font-size: 12px;
+      margin-left: 4px;
+    }
+
+    .node-value {
+      color: var(--accent);
+    }
+
+    .node-primitive .node-value {
+      color: #fbbf24;
+    }
+
+    .children {
+      transition: max-height 0.18s ease;
+      overflow: hidden;
+    }
+
+    .node.collapsed > .children {
+      max-height: 0;
+    }
+
+    .tag {
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(34, 211, 238, 0.12);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.4px;
+    }
+
+    .action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 9px 14px;
+      box-shadow: none;
+    }
+
+    .secondary:hover {
+      background: var(--hover);
+      transform: none;
+      box-shadow: none;
+    }
+
+    :root:not([data-theme="light"]) .secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #e5edff;
+    }
+
+    :root:not([data-theme="light"]) .secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    :root[data-theme="light"] .secondary {
+      color: #0f172a;
+      border-color: rgba(15, 23, 42, 0.12);
+      background: rgba(15, 23, 42, 0.02);
+    }
+
+    :root[data-theme="light"] .secondary:hover {
+      background: rgba(15, 23, 42, 0.06);
+    }
+
+    @media (max-width: 900px) {
+      body {
+        padding: 20px 10px;
+      }
+
+      .panes {
+        flex-direction: column;
+      }
+
+      .divider {
+        display: none;
+      }
+
+      .pane {
+        width: 100%;
+        flex-basis: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="title">
+      <h1>JSON 结构浏览器</h1>
+      <div class="action">
+        <span class="meta">类似 json.cn · 支持折叠与高亮</span>
+        <button id="theme-toggle" class="secondary" type="button">切换为浅色</button>
+      </div>
+    </div>
+    <div class="panes" id="panes">
+      <div class="pane" id="pane-left">
+        <section class="panel">
+        <h2>输入 JSON</h2>
+        <div class="controls">
+          <button id="parse-btn" type="button">解析并展示</button>
+          <div class="status" id="status">等待解析</div>
+        </div>
+        <textarea id="json-input" spellcheck="false">{
+  "title": "来自 Codex 的示例",
+  "version": 1,
+  "active": true,
+  "features": ["解析", "折叠", "展示"],
+  "meta": {
+    "author": "你可以替换这里的 JSON",
+    "updated_at": "2024-06-01"
+  },
+  "items": [
+    {"id": 1, "name": "Alpha", "score": 9.2},
+    {"id": 2, "name": "Beta", "score": 7.8}
+  ]
+}</textarea>
+        </section>
+      </div>
+      <div class="divider" id="divider"></div>
+      <div class="pane" id="pane-right">
+        <section class="panel">
+        <div class="panel-head">
+          <h2>JSON 结构</h2>
+          <div class="controls">
+            <button id="expand-all" class="secondary" type="button">全部展开</button>
+            <button id="collapse-all" class="secondary" type="button">全部折叠</button>
+          </div>
+        </div>
+        <ul class="tree" id="json-tree"></ul>
+        </section>
+      </div>
+    </div>
+  </div>
+
+<script>
+    const inputEl = document.getElementById('json-input');
+    const treeEl = document.getElementById('json-tree');
+    const statusEl = document.getElementById('status');
+    const parseBtn = document.getElementById('parse-btn');
+    const themeToggle = document.getElementById('theme-toggle');
+    const expandAllBtn = document.getElementById('expand-all');
+    const collapseAllBtn = document.getElementById('collapse-all');
+    const panesEl = document.getElementById('panes');
+    const dividerEl = document.getElementById('divider');
+    const paneLeft = document.getElementById('pane-left');
+    const paneRight = document.getElementById('pane-right');
+
+    const THEME_KEY = 'json-viewer-theme';
+    const SPLIT_KEY = 'json-viewer-split';
+
+    const applyTheme = (theme) => {
+      document.documentElement.dataset.theme = theme;
+      themeToggle.textContent = theme === 'light' ? '切换为深色' : '切换为浅色';
+    };
+
+    const initTheme = () => {
+      const stored = localStorage.getItem(THEME_KEY);
+      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      const theme = stored || (prefersLight ? 'light' : 'dark');
+      applyTheme(theme);
+    };
+
+    const debounce = (fn, wait = 400) => {
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), wait);
+      };
+    };
+
+    const formatValue = (value) => {
+      if (typeof value === 'string') return `"${value}"`;
+      if (value === null) return 'null';
+      return String(value);
+    };
+
+    const createNode = (key, value, isRoot = false) => {
+      const node = document.createElement('li');
+      node.className = 'node';
+
+      const header = document.createElement('div');
+      header.className = 'node-header';
+
+      const caret = document.createElement('span');
+      caret.className = 'caret';
+      caret.textContent = '▾';
+
+      const keyEl = document.createElement('span');
+      keyEl.className = 'node-key';
+      keyEl.textContent = isRoot ? key : key;
+
+      const meta = document.createElement('span');
+      meta.className = 'node-meta';
+
+      if (Array.isArray(value)) {
+        meta.textContent = `数组 · ${value.length} 项`;
+      } else if (value && typeof value === 'object') {
+        const count = Object.keys(value).length;
+        meta.textContent = `对象 · ${count} 个键`;
+      } else {
+        meta.textContent = typeof value;
+      }
+
+      header.append(caret, keyEl, meta);
+
+      if (value && typeof value === 'object') {
+        const children = document.createElement('ul');
+        children.className = 'children';
+        const entries = Array.isArray(value) ? value.entries() : Object.entries(value);
+
+        for (const [childKey, childVal] of entries) {
+          const displayKey = Array.isArray(value) ? `[${childKey}]` : childKey;
+          children.appendChild(createNode(displayKey, childVal));
+        }
+
+        header.addEventListener('click', () => {
+          node.classList.toggle('collapsed');
+        });
+
+        node.append(header, children);
+      } else {
+        node.classList.add('leaf', 'node-primitive');
+        const valEl = document.createElement('span');
+        valEl.className = 'node-value';
+        valEl.textContent = formatValue(value);
+        header.append(valEl);
+        node.append(header);
+      }
+
+      return node;
+    };
+
+    const renderTree = (data) => {
+      treeEl.innerHTML = '';
+      const rootNode = createNode('root', data, true);
+      treeEl.appendChild(rootNode);
+    };
+
+    const setStatus = (state, message) => {
+      statusEl.innerHTML = '';
+      const label = document.createElement('strong');
+      label.textContent = state;
+      label.className = state === 'OK' ? 'ok' : 'fail';
+      statusEl.append(label, document.createTextNode(' ' + message));
+    };
+
+    const parseAndRender = () => {
+      const raw = inputEl.value.trim();
+      if (!raw) {
+        treeEl.innerHTML = '';
+        setStatus('OK', '请输入 JSON');
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        renderTree(parsed);
+        setStatus('OK', '解析成功');
+      } catch (err) {
+        treeEl.innerHTML = '';
+        setStatus('ERR', err.message);
+      }
+    };
+
+    parseBtn.addEventListener('click', parseAndRender);
+    inputEl.addEventListener('input', debounce(parseAndRender, 500));
+    expandAllBtn.addEventListener('click', () => {
+      treeEl.querySelectorAll('.node.collapsed').forEach((el) => el.classList.remove('collapsed'));
+    });
+    collapseAllBtn.addEventListener('click', () => {
+      treeEl.querySelectorAll('.node').forEach((el) => {
+        if (!el.classList.contains('leaf')) el.classList.add('collapsed');
+      });
+    });
+
+    themeToggle.addEventListener('click', () => {
+      const current = document.documentElement.dataset.theme || 'dark';
+      const next = current === 'light' ? 'dark' : 'light';
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+    });
+
+    const setSplit = (ratio) => {
+      const clamped = Math.min(Math.max(ratio, 0.25), 0.75);
+      paneLeft.style.flexBasis = `${clamped * 100}%`;
+      paneRight.style.flexBasis = `${(1 - clamped) * 100}%`;
+      return clamped;
+    };
+
+    const initSplit = () => {
+      const stored = parseFloat(localStorage.getItem(SPLIT_KEY));
+      if (!Number.isNaN(stored)) {
+        setSplit(stored);
+      } else {
+        setSplit(0.48);
+      }
+    };
+
+    const startDrag = (e) => {
+      e.preventDefault();
+      const containerRect = panesEl.getBoundingClientRect();
+      const startX = e.clientX;
+      const startLeftWidth = paneLeft.getBoundingClientRect().width;
+      dividerEl.classList.add('dragging');
+
+      const onMove = (ev) => {
+        const delta = ev.clientX - startX;
+        const newLeft = startLeftWidth + delta;
+        const ratio = newLeft / containerRect.width;
+        const clamped = setSplit(ratio);
+        localStorage.setItem(SPLIT_KEY, clamped);
+      };
+
+      const onUp = () => {
+        dividerEl.classList.remove('dragging');
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      };
+
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    };
+
+    dividerEl.addEventListener('mousedown', startDrag);
+
+    initTheme();
+    initSplit();
+    parseAndRender();
+  </script>
+</body>
+</html>
