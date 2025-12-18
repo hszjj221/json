@@ -52,24 +52,26 @@
       margin: 0;
       min-height: 100vh;
       display: flex;
-      justify-content: center;
-      align-items: center;
+      justify-content: stretch;
+      align-items: stretch;
       background-color: var(--bg);
       background: var(--bg-gradient);
       color: var(--text);
       font-family: "Fira Code", "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
-      padding: 24px 12px;
+      padding: 12px;
     }
 
     .shell {
-      width: min(1280px, calc(100vw - 16px));
-      margin: 0 auto;
+      width: 100%;
+      height: calc(100vh - 24px);
+      margin: 0;
       background: var(--panel);
       border: 1px solid var(--border);
       box-shadow: var(--shadow);
       border-radius: var(--radius);
       padding: 18px;
       display: grid;
+      grid-template-rows: auto 1fr;
       gap: 14px;
     }
 
@@ -91,10 +93,19 @@
       font-size: 12px;
     }
 
+    .title-right {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     .panes {
       display: flex;
       align-items: stretch;
       gap: 10px;
+      min-height: 0;
     }
 
     .pane {
@@ -102,6 +113,7 @@
       flex-direction: column;
       min-width: 280px;
       flex: 1 1 0;
+      min-height: 0;
     }
 
     .panel {
@@ -113,7 +125,7 @@
       flex-direction: column;
       gap: 12px;
       flex: 1 1 0;
-      min-height: 520px;
+      min-height: 0;
     }
 
     .divider {
@@ -176,12 +188,14 @@
       outline: none;
       line-height: 1.4;
       flex: 1 1 auto;
+      min-height: 0;
     }
 
     .controls {
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
     button {
@@ -191,7 +205,37 @@
       font: inherit;
       font-weight: 700;
       cursor: pointer;
+      white-space: nowrap;
       transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.12s ease;
+    }
+
+    .btn-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      user-select: none;
+    }
+
+    :root[data-theme="light"] .toggle {
+      background: rgba(15, 23, 42, 0.03);
+    }
+
+    .toggle input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
     }
 
     button:not(.secondary) {
@@ -222,6 +266,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     .status strong {
@@ -242,6 +287,7 @@
       margin: 0;
       overflow: auto;
       flex: 1;
+      min-height: 0;
       border-radius: 10px;
       border: 1px solid var(--border);
       background: var(--surface);
@@ -264,10 +310,16 @@
       padding: 8px 10px;
       cursor: pointer;
       transition: background 0.12s ease;
+      outline: none;
     }
 
     .node-header:hover {
       background: var(--hover);
+    }
+
+    .node-header:focus-visible {
+      box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.35);
+      border-radius: 10px;
     }
 
     .caret {
@@ -307,6 +359,26 @@
       color: #fbbf24;
     }
 
+    .node.filtered-out {
+      display: none;
+    }
+
+    .node.match > .node-header {
+      background: rgba(34, 211, 238, 0.09);
+    }
+
+    :root[data-theme="light"] .node.match > .node-header {
+      background: rgba(14, 165, 233, 0.12);
+    }
+
+    .node.selected > .node-header {
+      background: rgba(168, 85, 247, 0.18);
+    }
+
+    :root[data-theme="light"] .node.selected > .node-header {
+      background: rgba(99, 102, 241, 0.16);
+    }
+
     .children {
       transition: max-height 0.18s ease;
       overflow: hidden;
@@ -324,6 +396,84 @@
       color: var(--accent);
       font-size: 12px;
       letter-spacing: 0.4px;
+    }
+
+    .field {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      flex: 1 1 260px;
+      min-width: 220px;
+      white-space: nowrap;
+    }
+
+    :root[data-theme="light"] .field {
+      background: rgba(15, 23, 42, 0.02);
+    }
+
+    .field .meta {
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
+    .field input {
+      width: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      padding: 0;
+      min-width: 0;
+    }
+
+    .ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 9px 14px;
+      box-shadow: none;
+      font-weight: 700;
+    }
+
+    .ghost:hover {
+      background: var(--hover);
+      transform: none;
+      box-shadow: none;
+    }
+
+    .info {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    :root[data-theme="light"] .info {
+      background: rgba(15, 23, 42, 0.02);
+    }
+
+    .mono {
+      font-family: inherit;
+      color: var(--text);
+      font-size: 12px;
+      word-break: break-all;
+    }
+
+    .drop-hint {
+      border: 1px dashed rgba(34, 211, 238, 0.45);
+      background: rgba(34, 211, 238, 0.06);
     }
 
     .action {
@@ -369,7 +519,7 @@
 
     @media (max-width: 900px) {
       body {
-        padding: 20px 10px;
+        padding: 10px;
       }
 
       .panes {
@@ -384,6 +534,10 @@
         width: 100%;
         flex-basis: auto !important;
       }
+
+      .shell {
+        height: calc(100vh - 20px);
+      }
     }
   </style>
 </head>
@@ -391,8 +545,8 @@
   <div class="shell">
     <div class="title">
       <h1>JSON 结构浏览器</h1>
-      <div class="action">
-        <span class="meta">类似 json.cn · 支持折叠与高亮</span>
+      <div class="title-right">
+        <span class="meta">支持拖拽文件 · 搜索过滤 · 复制路径/值 · 快捷键 ⌘/Ctrl+Enter</span>
         <button id="theme-toggle" class="secondary" type="button">切换为浅色</button>
       </div>
     </div>
@@ -401,7 +555,19 @@
         <section class="panel">
         <h2>输入 JSON</h2>
         <div class="controls">
-          <button id="parse-btn" type="button">解析并展示</button>
+          <div class="btn-row">
+            <button id="parse-btn" type="button">解析并展示</button>
+            <button id="format-btn" class="secondary" type="button">格式化</button>
+            <button id="minify-btn" class="secondary" type="button">压缩</button>
+            <button id="copy-btn" class="secondary" type="button">复制格式化</button>
+            <button id="open-btn" class="secondary" type="button">打开文件</button>
+            <button id="paste-btn" class="secondary" type="button">从剪贴板粘贴</button>
+            <button id="clear-btn" class="ghost" type="button">清空</button>
+          </div>
+          <label class="toggle" title="关闭后仅手动点击解析">
+            <input id="auto-parse" type="checkbox" checked>
+            自动解析
+          </label>
           <div class="status" id="status">等待解析</div>
         </div>
         <textarea id="json-input" spellcheck="false">{
@@ -418,6 +584,7 @@
     {"id": 2, "name": "Beta", "score": 7.8}
   ]
 }</textarea>
+        <input id="file-input" type="file" accept=".json,application/json" hidden>
         </section>
       </div>
       <div class="divider" id="divider"></div>
@@ -426,9 +593,20 @@
         <div class="panel-head">
           <h2>JSON 结构</h2>
           <div class="controls">
+            <div class="field" title="按 key / 值 搜索，清空可恢复折叠状态">
+              <span class="meta">搜索</span>
+              <input id="search-input" type="text" placeholder="例如：id / Alpha / items[0]" autocomplete="off" />
+              <button id="search-clear" class="secondary" type="button">清空</button>
+            </div>
             <button id="expand-all" class="secondary" type="button">全部展开</button>
             <button id="collapse-all" class="secondary" type="button">全部折叠</button>
           </div>
+        </div>
+        <div class="info" id="info-bar">
+          <span>匹配：<strong id="match-count">0</strong></span>
+          <span>选中：<span class="mono" id="selected-path">-</span></span>
+          <button id="copy-path" class="secondary" type="button">复制路径</button>
+          <button id="copy-value" class="secondary" type="button">复制值</button>
         </div>
         <ul class="tree" id="json-tree"></ul>
         </section>
@@ -441,9 +619,23 @@
     const treeEl = document.getElementById('json-tree');
     const statusEl = document.getElementById('status');
     const parseBtn = document.getElementById('parse-btn');
+    const formatBtn = document.getElementById('format-btn');
+    const minifyBtn = document.getElementById('minify-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const openBtn = document.getElementById('open-btn');
+    const pasteBtn = document.getElementById('paste-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const fileInput = document.getElementById('file-input');
+    const autoParseEl = document.getElementById('auto-parse');
     const themeToggle = document.getElementById('theme-toggle');
     const expandAllBtn = document.getElementById('expand-all');
     const collapseAllBtn = document.getElementById('collapse-all');
+    const searchInput = document.getElementById('search-input');
+    const searchClear = document.getElementById('search-clear');
+    const matchCountEl = document.getElementById('match-count');
+    const selectedPathEl = document.getElementById('selected-path');
+    const copyPathBtn = document.getElementById('copy-path');
+    const copyValueBtn = document.getElementById('copy-value');
     const panesEl = document.getElementById('panes');
     const dividerEl = document.getElementById('divider');
     const paneLeft = document.getElementById('pane-left');
@@ -451,6 +643,11 @@
 
     const THEME_KEY = 'json-viewer-theme';
     const SPLIT_KEY = 'json-viewer-split';
+    const AUTOPARSE_KEY = 'json-viewer-autoparse';
+
+    let lastParsed = null;
+    let selected = null;
+    let filterSnapshot = null;
 
     const applyTheme = (theme) => {
       document.documentElement.dataset.theme = theme;
@@ -472,72 +669,135 @@
       };
     };
 
-    const formatValue = (value) => {
-      if (typeof value === 'string') return `"${value}"`;
-      if (value === null) return 'null';
-      return String(value);
+    const escapePointerToken = (token) => String(token).replaceAll('~', '~0').replaceAll('/', '~1');
+
+    const joinPath = (parent, token) => {
+      const part = escapePointerToken(token);
+      if (!parent || parent === '/') return '/' + part;
+      return parent + '/' + part;
     };
 
-    const createNode = (key, value, isRoot = false) => {
-      const node = document.createElement('li');
-      node.className = 'node';
+    const valueType = (value) => {
+      if (value === null) return 'null';
+      if (Array.isArray(value)) return 'array';
+      return typeof value;
+    };
 
-      const header = document.createElement('div');
-      header.className = 'node-header';
+    const previewValue = (value) => {
+      const t = valueType(value);
+      if (t === 'array') return `Array(${value.length})`;
+      if (t === 'object') return `Object(${Object.keys(value).length})`;
+      return JSON.stringify(value);
+    };
 
-      const caret = document.createElement('span');
-      caret.className = 'caret';
-      caret.textContent = '▾';
+    const collectCollapsedPaths = () => new Set(
+      Array.from(treeEl.querySelectorAll('li.node.collapsed')).map((el) => el.dataset.path).filter(Boolean)
+    );
 
-      const keyEl = document.createElement('span');
-      keyEl.className = 'node-key';
-      keyEl.textContent = isRoot ? key : key;
+    const renderTree = (data, collapsedPaths = new Set()) => {
+      treeEl.innerHTML = '';
+      selected = null;
+      selectedPathEl.textContent = '-';
+      matchCountEl.textContent = '0';
 
-      const meta = document.createElement('span');
-      meta.className = 'node-meta';
+      const fragment = document.createDocumentFragment();
+      let nodeCount = 0;
 
-      if (Array.isArray(value)) {
-        meta.textContent = `数组 · ${value.length} 项`;
-      } else if (value && typeof value === 'object') {
-        const count = Object.keys(value).length;
-        meta.textContent = `对象 · ${count} 个键`;
-      } else {
-        meta.textContent = typeof value;
-      }
+      const makeNode = (key, value, path, isRoot = false) => {
+        const node = document.createElement('li');
+        node.className = 'node';
+        node.dataset.path = path || '';
 
-      header.append(caret, keyEl, meta);
+        const header = document.createElement('div');
+        header.className = 'node-header';
+        header.tabIndex = 0;
 
-      if (value && typeof value === 'object') {
-        const children = document.createElement('ul');
-        children.className = 'children';
-        const entries = Array.isArray(value) ? value.entries() : Object.entries(value);
+        const caret = document.createElement('span');
+        caret.className = 'caret';
+        caret.textContent = '▾';
 
-        for (const [childKey, childVal] of entries) {
-          const displayKey = Array.isArray(value) ? `[${childKey}]` : childKey;
-          children.appendChild(createNode(displayKey, childVal));
+        const keyEl = document.createElement('span');
+        keyEl.className = 'node-key';
+        keyEl.textContent = isRoot ? key : key;
+
+        const meta = document.createElement('span');
+        meta.className = 'node-meta';
+
+        const t = valueType(value);
+        node.dataset.type = t;
+
+        if (t === 'array') {
+          meta.textContent = `数组 · ${value.length} 项`;
+          node.dataset.count = String(value.length);
+        } else if (t === 'object') {
+          const count = Object.keys(value).length;
+          meta.textContent = `对象 · ${count} 个键`;
+          node.dataset.count = String(count);
+        } else {
+          meta.textContent = t;
         }
 
-        header.addEventListener('click', () => {
-          node.classList.toggle('collapsed');
-        });
+        header.append(caret, keyEl, meta);
 
-        node.append(header, children);
-      } else {
-        node.classList.add('leaf', 'node-primitive');
-        const valEl = document.createElement('span');
-        valEl.className = 'node-value';
-        valEl.textContent = formatValue(value);
-        header.append(valEl);
-        node.append(header);
+        if (t === 'object' || t === 'array') {
+          const children = document.createElement('ul');
+          children.className = 'children';
+          node.append(header, children);
+          if (collapsedPaths.has(path)) node.classList.add('collapsed');
+        } else {
+          node.classList.add('leaf', 'node-primitive');
+          const valEl = document.createElement('span');
+          valEl.className = 'node-value';
+          valEl.textContent = previewValue(value);
+          node.dataset.value = valEl.textContent;
+          header.append(valEl);
+          node.append(header);
+        }
+
+        const searchText = `${path || ''} ${key} ${t} ${node.dataset.value || meta.textContent || ''}`.toLowerCase();
+        node.dataset.search = searchText;
+        nodeCount += 1;
+        return node;
+      };
+
+      const rootNode = makeNode('root', data, '/');
+      fragment.appendChild(rootNode);
+
+      const rootChildren = rootNode.querySelector(':scope > ul.children');
+      const stack = [{ parentUl: rootChildren, value: data, path: '/' }];
+
+      while (stack.length) {
+        const frame = stack.pop();
+        const { parentUl, value, path } = frame;
+        const t = valueType(value);
+        if (t !== 'object' && t !== 'array') continue;
+
+        if (t === 'array') {
+          for (let i = value.length - 1; i >= 0; i -= 1) {
+            const childVal = value[i];
+            const key = `[${i}]`;
+            const childPath = joinPath(path, String(i));
+            const node = makeNode(key, childVal, childPath);
+            parentUl.prepend(node);
+            const ul = node.querySelector(':scope > ul.children');
+            if (ul) stack.push({ parentUl: ul, value: childVal, path: childPath });
+          }
+        } else {
+          const keys = Object.keys(value);
+          for (let i = keys.length - 1; i >= 0; i -= 1) {
+            const k = keys[i];
+            const childVal = value[k];
+            const childPath = joinPath(path, k);
+            const node = makeNode(k, childVal, childPath);
+            parentUl.prepend(node);
+            const ul = node.querySelector(':scope > ul.children');
+            if (ul) stack.push({ parentUl: ul, value: childVal, path: childPath });
+          }
+        }
       }
 
-      return node;
-    };
-
-    const renderTree = (data) => {
-      treeEl.innerHTML = '';
-      const rootNode = createNode('root', data, true);
-      treeEl.appendChild(rootNode);
+      treeEl.appendChild(fragment);
+      return { nodeCount };
     };
 
     const setStatus = (state, message) => {
@@ -548,25 +808,146 @@
       statusEl.append(label, document.createTextNode(' ' + message));
     };
 
+    const extractErrorPosition = (message) => {
+      const match = /position\s+(\d+)/i.exec(message);
+      if (!match) return null;
+      const pos = Number(match[1]);
+      return Number.isFinite(pos) ? pos : null;
+    };
+
+    const lineColAt = (text, pos) => {
+      let line = 1;
+      let col = 1;
+      const end = Math.min(Math.max(pos, 0), text.length);
+      for (let i = 0; i < end; i += 1) {
+        if (text[i] === '\n') {
+          line += 1;
+          col = 1;
+        } else {
+          col += 1;
+        }
+      }
+      return { line, col };
+    };
+
+    const focusErrorAt = (pos) => {
+      if (!Number.isFinite(pos)) return;
+      inputEl.focus();
+      inputEl.setSelectionRange(pos, Math.min(pos + 1, inputEl.value.length));
+    };
+
+    const writeClipboard = async (text) => {
+      if (!navigator.clipboard?.writeText) throw new Error('当前环境不支持 Clipboard API');
+      await navigator.clipboard.writeText(text);
+    };
+
+    const readClipboard = async () => {
+      if (!navigator.clipboard?.readText) throw new Error('当前环境不支持 Clipboard API');
+      return navigator.clipboard.readText();
+    };
+
     const parseAndRender = () => {
       const raw = inputEl.value.trim();
       if (!raw) {
         treeEl.innerHTML = '';
-        setStatus('OK', '请输入 JSON');
+        lastParsed = null;
+        matchCountEl.textContent = '0';
+        selectedPathEl.textContent = '-';
+        setStatus('OK', '请输入 JSON（支持拖拽 .json 文件到页面）');
         return;
       }
       try {
+        const collapsed = filterSnapshot?.collapsedPaths || collectCollapsedPaths();
+        const start = performance.now();
         const parsed = JSON.parse(raw);
-        renderTree(parsed);
-        setStatus('OK', '解析成功');
+        const ms = Math.max(0, performance.now() - start);
+        lastParsed = parsed;
+        const { nodeCount } = renderTree(parsed, collapsed);
+        setStatus('OK', `解析成功 · 节点 ${nodeCount} · 耗时 ${ms.toFixed(1)}ms`);
+        applyFilter(searchInput.value);
       } catch (err) {
         treeEl.innerHTML = '';
-        setStatus('ERR', err.message);
+        lastParsed = null;
+        const pos = extractErrorPosition(err.message);
+        if (pos !== null) {
+          const { line, col } = lineColAt(inputEl.value, pos);
+          setStatus('ERR', `${err.message}（第 ${line} 行，第 ${col} 列）`);
+          focusErrorAt(pos);
+        } else {
+          setStatus('ERR', err.message);
+        }
       }
     };
 
     parseBtn.addEventListener('click', parseAndRender);
-    inputEl.addEventListener('input', debounce(parseAndRender, 500));
+    const parseDebounced = debounce(parseAndRender, 500);
+    inputEl.addEventListener('input', () => {
+      if (!autoParseEl.checked) return;
+      parseDebounced();
+    });
+
+    formatBtn.addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse(inputEl.value);
+        inputEl.value = JSON.stringify(parsed, null, 2);
+        parseAndRender();
+      } catch (err) {
+        setStatus('ERR', err.message);
+      }
+    });
+
+    minifyBtn.addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse(inputEl.value);
+        inputEl.value = JSON.stringify(parsed);
+        parseAndRender();
+      } catch (err) {
+        setStatus('ERR', err.message);
+      }
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        if (lastParsed === null) throw new Error('没有可复制的结果（请先解析）');
+        await writeClipboard(JSON.stringify(lastParsed, null, 2));
+        setStatus('OK', '已复制格式化 JSON');
+      } catch (err) {
+        setStatus('ERR', err.message);
+      }
+    });
+
+    openBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      inputEl.value = text;
+      parseAndRender();
+      fileInput.value = '';
+    });
+
+    pasteBtn.addEventListener('click', async () => {
+      try {
+        const text = await readClipboard();
+        inputEl.value = text;
+        parseAndRender();
+      } catch (err) {
+        setStatus('ERR', err.message);
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      inputEl.value = '';
+      treeEl.innerHTML = '';
+      lastParsed = null;
+      selected = null;
+      filterSnapshot = null;
+      searchInput.value = '';
+      matchCountEl.textContent = '0';
+      selectedPathEl.textContent = '-';
+      setStatus('OK', '已清空');
+    });
+
     expandAllBtn.addEventListener('click', () => {
       treeEl.querySelectorAll('.node.collapsed').forEach((el) => el.classList.remove('collapsed'));
     });
@@ -582,6 +963,19 @@
       localStorage.setItem(THEME_KEY, next);
       applyTheme(next);
     });
+
+    const setAutoParse = (enabled) => {
+      autoParseEl.checked = Boolean(enabled);
+      localStorage.setItem(AUTOPARSE_KEY, autoParseEl.checked ? '1' : '0');
+    };
+
+    const initAutoParse = () => {
+      const stored = localStorage.getItem(AUTOPARSE_KEY);
+      if (stored === null) return;
+      setAutoParse(stored === '1');
+    };
+
+    autoParseEl.addEventListener('change', () => setAutoParse(autoParseEl.checked));
 
     const setSplit = (ratio) => {
       const clamped = Math.min(Math.max(ratio, 0.25), 0.75);
@@ -626,8 +1020,194 @@
 
     dividerEl.addEventListener('mousedown', startDrag);
 
+    const clearSelection = () => {
+      treeEl.querySelectorAll('.node.selected').forEach((el) => el.classList.remove('selected'));
+      selected = null;
+      selectedPathEl.textContent = '-';
+    };
+
+    const setSelected = (node) => {
+      if (!node) return;
+      treeEl.querySelectorAll('.node.selected').forEach((el) => el.classList.remove('selected'));
+      node.classList.add('selected');
+      selected = node;
+      selectedPathEl.textContent = node.dataset.path || '-';
+    };
+
+    treeEl.addEventListener('click', (e) => {
+      const header = e.target.closest('.node-header');
+      if (!header) return;
+      const node = header.closest('li.node');
+      if (!node) return;
+      setSelected(node);
+      if (!node.classList.contains('leaf')) node.classList.toggle('collapsed');
+    });
+
+    treeEl.addEventListener('keydown', (e) => {
+      const header = e.target.closest('.node-header');
+      if (!header) return;
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      header.click();
+    });
+
+    const applyFilter = (queryRaw) => {
+      const query = (queryRaw || '').trim().toLowerCase();
+      const nodes = Array.from(treeEl.querySelectorAll('li.node'));
+      if (!nodes.length) {
+        matchCountEl.textContent = '0';
+        return;
+      }
+
+      if (!query) {
+        nodes.forEach((n) => {
+          n.classList.remove('filtered-out', 'match');
+        });
+        matchCountEl.textContent = '0';
+        if (filterSnapshot) {
+          const { collapsedPaths } = filterSnapshot;
+          nodes.forEach((n) => {
+            if (n.classList.contains('leaf')) return;
+            n.classList.toggle('collapsed', collapsedPaths.has(n.dataset.path));
+          });
+          filterSnapshot = null;
+        }
+        return;
+      }
+
+      if (!filterSnapshot) {
+        filterSnapshot = { collapsedPaths: collectCollapsedPaths() };
+      }
+
+      nodes.forEach((n) => n.classList.add('filtered-out'));
+      let matchCount = 0;
+
+      for (const node of nodes) {
+        node.classList.remove('match');
+        if (!node.dataset.search?.includes(query)) continue;
+        matchCount += 1;
+        node.classList.add('match');
+
+        let cur = node;
+        while (cur && cur !== treeEl) {
+          cur.classList.remove('filtered-out');
+          if (!cur.classList.contains('leaf')) cur.classList.remove('collapsed');
+          cur = cur.parentElement?.closest('li.node');
+        }
+      }
+
+      const root = treeEl.querySelector(':scope > li.node');
+      if (root) root.classList.remove('filtered-out');
+      matchCountEl.textContent = String(matchCount);
+    };
+
+    const filterDebounced = debounce(() => applyFilter(searchInput.value), 150);
+    searchInput.addEventListener('input', filterDebounced);
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      applyFilter('');
+      searchInput.focus();
+    });
+
+    const findValueAtPointer = (data, pointer) => {
+      if (!pointer || pointer === '/') return data;
+      const parts = pointer.split('/').slice(1).map((p) => p.replaceAll('~1', '/').replaceAll('~0', '~'));
+      let cur = data;
+      for (const part of parts) {
+        if (cur === null || cur === undefined) return undefined;
+        if (Array.isArray(cur)) {
+          const idx = Number(part);
+          if (!Number.isInteger(idx)) return undefined;
+          cur = cur[idx];
+        } else {
+          cur = cur[part];
+        }
+      }
+      return cur;
+    };
+
+    copyPathBtn.addEventListener('click', async () => {
+      try {
+        if (!selected?.dataset.path) throw new Error('请先在右侧树中点选一个节点');
+        await writeClipboard(selected.dataset.path);
+        setStatus('OK', '已复制路径（JSON Pointer）');
+      } catch (err) {
+        setStatus('ERR', err.message);
+      }
+    });
+
+    copyValueBtn.addEventListener('click', async () => {
+      try {
+        if (lastParsed === null) throw new Error('没有可复制的值（请先解析）');
+        if (!selected?.dataset.path) throw new Error('请先在右侧树中点选一个节点');
+        const value = findValueAtPointer(lastParsed, selected.dataset.path);
+        await writeClipboard(JSON.stringify(value, null, 2));
+        setStatus('OK', '已复制值');
+      } catch (err) {
+        setStatus('ERR', err.message);
+      }
+    });
+
+    const onDrop = async (e) => {
+      e.preventDefault();
+      inputEl.classList.remove('drop-hint');
+      const file = e.dataTransfer?.files?.[0];
+      try {
+        if (file) {
+          const text = await file.text();
+          inputEl.value = text;
+          parseAndRender();
+          return;
+        }
+        const text = e.dataTransfer?.getData('text/plain');
+        if (text) {
+          inputEl.value = text;
+          parseAndRender();
+        }
+      } catch (err) {
+        setStatus('ERR', err.message);
+      }
+    };
+
+    const onDragOver = (e) => {
+      e.preventDefault();
+      inputEl.classList.add('drop-hint');
+    };
+
+    const onDragLeave = () => inputEl.classList.remove('drop-hint');
+
+    inputEl.addEventListener('dragover', onDragOver);
+    inputEl.addEventListener('dragleave', onDragLeave);
+    inputEl.addEventListener('drop', onDrop);
+
+    window.addEventListener('keydown', (e) => {
+      const isMac = navigator.platform.toLowerCase().includes('mac');
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+      if (!mod) return;
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        parseAndRender();
+      } else if (e.shiftKey && (e.key.toLowerCase() === 'f')) {
+        e.preventDefault();
+        formatBtn.click();
+      } else if (e.shiftKey && (e.key.toLowerCase() === 'm')) {
+        e.preventDefault();
+        minifyBtn.click();
+      } else if (e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+      } else if (e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        inputEl.focus();
+        inputEl.select();
+      }
+    });
+
     initTheme();
     initSplit();
+    initAutoParse();
     parseAndRender();
   </script>
 </body>
