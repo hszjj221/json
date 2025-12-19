@@ -23,29 +23,29 @@
         radial-gradient(circle at 80% 10%, rgba(168, 85, 247, 0.16), transparent 30%),
         linear-gradient(120deg, #0b1222, #0d1324 40%, #0b1222 80%);
       --radius: 14px;
+      --font-mono: "Fira Code", "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
     }
 
     :root[data-theme="light"] {
-      --bg: #eef2ff;
+      --bg: #f1f5f9;
       --panel: #ffffff;
-      --surface: #f8fafc;
-      --border: rgba(15, 23, 42, 0.08);
+      --surface: #ffffff;
+      --border: #e2e8f0;
       --accent: #0ea5e9;
       --accent-2: #6366f1;
-      --text: #0f172a;
-      --muted: #475569;
-      --danger: #dc2626;
-      --success: #15803d;
-      --hover: rgba(15, 23, 42, 0.05);
-      --shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
-      --bg-gradient:
-        radial-gradient(circle at 18% 18%, rgba(14, 165, 233, 0.2), transparent 25%),
-        radial-gradient(circle at 82% 8%, rgba(99, 102, 241, 0.18), transparent 30%),
-        linear-gradient(125deg, #e8eefc, #f8fafc 45%, #e9edfa 80%);
+      --text: #1e293b;
+      --muted: #64748b;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --hover: #f8fafc;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
     }
 
     * {
       box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
     }
 
     body {
@@ -57,7 +57,7 @@
       background-color: var(--bg);
       background: var(--bg-gradient);
       color: var(--text);
-      font-family: "Fira Code", "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       padding: 12px;
     }
 
@@ -69,10 +69,11 @@
       border: 1px solid var(--border);
       box-shadow: var(--shadow);
       border-radius: var(--radius);
-      padding: 18px;
+      padding: 20px;
       display: grid;
       grid-template-rows: auto 1fr;
-      gap: 14px;
+      gap: 20px;
+      overflow: hidden;
     }
 
     .title {
@@ -84,88 +85,75 @@
 
     .title h1 {
       margin: 0;
-      font-size: 20px;
-      letter-spacing: 0.5px;
+      font-size: 24px;
+      font-weight: 800;
+      background: linear-gradient(to right, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
     }
 
     .title .meta {
       color: var(--muted);
-      font-size: 12px;
+      font-size: 13px;
     }
 
     .title-right {
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 10px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
     .panes {
       display: flex;
       align-items: stretch;
-      gap: 10px;
+      gap: 0;
       min-height: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
     }
 
     .pane {
       display: flex;
       flex-direction: column;
-      min-width: 280px;
-      flex: 1 1 0;
+      min-width: 200px;
       min-height: 0;
+      background: var(--surface);
     }
 
     .panel {
-      background: var(--surface);
-      border-radius: var(--radius);
-      padding: 14px;
-      border: 1px solid var(--border);
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
       flex: 1 1 0;
       min-height: 0;
     }
 
     .divider {
-      width: 10px;
+      width: 4px;
       cursor: col-resize;
-      display: flex;
-      align-items: stretch;
+      background: var(--border);
       position: relative;
-      user-select: none;
+      transition: background 0.2s;
+      z-index: 10;
     }
 
-    .divider::before {
-      content: "";
-      flex: 1;
-      margin: 6px 3px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.08);
-      transition: background 0.12s ease;
-    }
-
-    .divider:hover::before,
-    .divider.dragging::before {
-      background: rgba(34, 211, 238, 0.4);
-    }
-
-    :root[data-theme="light"] .divider::before {
-      background: rgba(15, 23, 42, 0.08);
-    }
-
-    :root[data-theme="light"] .divider:hover::before,
-    :root[data-theme="light"] .divider.dragging::before {
-      background: rgba(14, 165, 233, 0.5);
+    .divider:hover, .divider.dragging {
+      background: var(--accent);
     }
 
     .panel h2 {
       margin: 0;
-      font-size: 14px;
+      font-size: 12px;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
       color: var(--muted);
+      font-weight: 700;
     }
 
     .panel-head {
@@ -175,300 +163,253 @@
       gap: 10px;
     }
 
+    .editor-container {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
     textarea {
       width: 100%;
       height: 100%;
-      background: var(--surface);
+      background: var(--bg);
       color: var(--text);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-      font: inherit;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 14px;
       resize: none;
       outline: none;
-      line-height: 1.4;
-      flex: 1 1 auto;
-      min-height: 0;
+      line-height: 1.6;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      border-color: var(--accent);
     }
 
     .controls {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
     button {
       border: none;
-      border-radius: 10px;
-      padding: 10px 16px;
-      font: inherit;
-      font-weight: 700;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
-      transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.12s ease;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
 
-    .btn-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
+    button.primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    button.primary:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: var(--hover);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    button.secondary:hover {
+      background: var(--border);
+    }
+
+    button.ghost {
+      background: transparent;
+      color: var(--muted);
+    }
+
+    button.ghost:hover {
+      color: var(--text);
+      background: var(--hover);
     }
 
     .toggle {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 9px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--text);
-      user-select: none;
-    }
-
-    :root[data-theme="light"] .toggle {
-      background: rgba(15, 23, 42, 0.03);
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
     }
 
     .toggle input {
-      width: 16px;
-      height: 16px;
-      accent-color: var(--accent);
-    }
-
-    button:not(.secondary) {
-      background: linear-gradient(120deg, #22d3ee, #5b8def);
-      color: #061427;
-      box-shadow: 0 12px 28px rgba(91, 141, 239, 0.28);
-    }
-
-    :root[data-theme="light"] button:not(.secondary) {
-      background: linear-gradient(120deg, #0ea5e9, #12b981);
-      color: #0b1222;
-      box-shadow: 0 10px 22px rgba(14, 165, 233, 0.2);
-    }
-
-    button:not(.secondary):hover {
-      transform: translateY(-1px);
-      filter: brightness(1.02);
-    }
-
-    button:not(.secondary):active {
-      transform: translateY(0);
-      filter: brightness(0.98);
+      cursor: pointer;
     }
 
     .status {
       font-size: 12px;
       color: var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: var(--hover);
     }
 
-    .status strong {
-      font-weight: 700;
-    }
-
-    .status .ok {
-      color: var(--success);
-    }
-
-    .status .fail {
-      color: var(--danger);
+    .tree, .tree ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
     }
 
     .tree {
-      list-style: none;
-      padding-left: 0;
-      margin: 0;
       overflow: auto;
       flex: 1;
       min-height: 0;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: var(--surface);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 10px;
     }
 
-    .tree ul {
-      list-style: none;
-      margin: 0;
-      padding-left: 18px;
+    .tree .children {
+      padding-left: 22px;
+      margin-left: 7px;
+      border-left: 1px solid var(--border);
+      overflow: hidden;
+      transition: all 0.2s ease;
     }
 
-    .node {
-      position: relative;
+    .node.collapsed > .children {
+      display: none;
     }
 
     .node-header {
       display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 8px 10px;
+      align-items: center;
+      padding: 4px 8px;
       cursor: pointer;
-      transition: background 0.12s ease;
-      outline: none;
+      border-radius: 4px;
+      gap: 6px;
     }
 
     .node-header:hover {
       background: var(--hover);
     }
 
-    .node-header:focus-visible {
-      box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.35);
-      border-radius: 10px;
+    .node.selected > .node-header {
+      background: rgba(34, 211, 238, 0.15);
+      border-radius: 4px;
     }
 
-    .caret {
-      width: 14px;
-      display: inline-flex;
-      justify-content: center;
-      align-items: center;
-      color: var(--muted);
-      font-size: 12px;
-      transition: transform 0.12s ease;
-    }
-
-    .leaf .caret {
-      visibility: hidden;
-    }
-
-    .node.collapsed .caret {
-      transform: rotate(-90deg);
-    }
-
-    .node-key {
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .node-meta {
-      color: var(--muted);
-      font-size: 12px;
-      margin-left: 4px;
-    }
-
-    .node-value {
-      color: var(--accent);
-    }
-
-    .node-primitive .node-value {
-      color: #fbbf24;
+    .node.match > .node-header {
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px dashed var(--accent);
+      border-radius: 4px;
     }
 
     .node.filtered-out {
       display: none;
     }
 
-    .node.match > .node-header {
-      background: rgba(34, 211, 238, 0.09);
-    }
-
-    :root[data-theme="light"] .node.match > .node-header {
-      background: rgba(14, 165, 233, 0.12);
-    }
-
-    .node.selected > .node-header {
-      background: rgba(168, 85, 247, 0.18);
-    }
-
-    :root[data-theme="light"] .node.selected > .node-header {
-      background: rgba(99, 102, 241, 0.16);
-    }
-
-    .children {
-      transition: max-height 0.18s ease;
-      overflow: hidden;
-    }
-
-    .node.collapsed > .children {
-      max-height: 0;
-    }
-
-    .tag {
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: rgba(34, 211, 238, 0.12);
-      border: 1px solid rgba(34, 211, 238, 0.3);
-      color: var(--accent);
-      font-size: 12px;
-      letter-spacing: 0.4px;
-    }
-
-    .field {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--text);
-      flex: 1 1 260px;
-      min-width: 220px;
-      white-space: nowrap;
-    }
-
-    :root[data-theme="light"] .field {
-      background: rgba(15, 23, 42, 0.02);
-    }
-
-    .field .meta {
-      white-space: nowrap;
-      flex: 0 0 auto;
-    }
-
-    .field input {
-      width: 100%;
-      border: none;
-      outline: none;
-      background: transparent;
-      color: inherit;
-      font: inherit;
-      padding: 0;
-      min-width: 0;
-    }
-
-    .ghost {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 9px 14px;
-      box-shadow: none;
-      font-weight: 700;
-    }
-
-    .ghost:hover {
-      background: var(--hover);
-      transform: none;
-      box-shadow: none;
-    }
-
-    .info {
-      font-size: 12px;
-      color: var(--muted);
+    .caret {
+      width: 16px;
+      height: 16px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      padding: 10px 12px;
+      justify-content: center;
+      color: var(--muted);
+      transition: transform 0.2s;
+    }
+
+    .node.collapsed > .node-header .caret {
+      transform: rotate(-90deg);
+    }
+
+    .node-key {
+      color: var(--accent-2);
+      font-weight: 600;
+    }
+
+    .node-value {
+      color: var(--success);
+    }
+
+    .node-value.string { color: var(--success); }
+    .node-value.number { color: #f59e0b; }
+    .node-value.boolean { color: #3b82f6; }
+    .node-value.null { color: #94a3b8; }
+
+    .node-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 4px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--text);
+      color: var(--bg);
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      transform: translateY(100px);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 1000;
+      font-weight: 600;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+    }
+
+    .search-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.02);
+      border-radius: 6px;
+      padding: 4px 8px;
+      flex: 1;
     }
 
-    :root[data-theme="light"] .info {
-      background: rgba(15, 23, 42, 0.02);
-    }
-
-    .mono {
-      font-family: inherit;
+    .search-container input {
+      background: transparent;
+      border: none;
+      outline: none;
       color: var(--text);
+      padding: 4px;
+      width: 100%;
+      font-size: 13px;
+    }
+
+    .info-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 12px;
+      background: var(--hover);
+      border-radius: 8px;
       font-size: 12px;
-      word-break: break-all;
+    }
+
+    .path-display {
+      font-family: var(--font-mono);
+      color: var(--muted);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .drop-hint {
@@ -544,75 +485,85 @@
 <body>
   <div class="shell">
     <div class="title">
-      <h1>JSON 结构浏览器</h1>
+      <h1>JSON Viewer</h1>
       <div class="title-right">
-        <span class="meta">支持拖拽文件 · 搜索过滤 · 复制路径/值 · 快捷键 ⌘/Ctrl+Enter</span>
-        <button id="theme-toggle" class="secondary" type="button">切换为浅色</button>
+        <span class="meta">支持拖拽文件 · 搜索过滤 · 复制路径/值 · ⌘/Ctrl+Enter</span>
+        <button id="theme-toggle" class="secondary" type="button">🌓 切换主题</button>
       </div>
     </div>
     <div class="panes" id="panes">
       <div class="pane" id="pane-left">
         <section class="panel">
-        <h2>输入 JSON</h2>
-        <div class="controls">
-          <div class="btn-row">
-            <button id="parse-btn" type="button">解析并展示</button>
-            <button id="format-btn" class="secondary" type="button">格式化</button>
-            <button id="minify-btn" class="secondary" type="button">压缩</button>
-            <button id="copy-btn" class="secondary" type="button">复制格式化</button>
-            <button id="open-btn" class="secondary" type="button">打开文件</button>
-            <button id="paste-btn" class="secondary" type="button">从剪贴板粘贴</button>
-            <button id="clear-btn" class="ghost" type="button">清空</button>
+          <div class="panel-head">
+            <h2>输入 JSON</h2>
+            <div class="status" id="status">等待输入...</div>
           </div>
-          <label class="toggle" title="关闭后仅手动点击解析">
-            <input id="auto-parse" type="checkbox" checked>
-            自动解析
-          </label>
-          <div class="status" id="status">等待解析</div>
-        </div>
-        <textarea id="json-input" spellcheck="false">{
-  "title": "来自 Codex 的示例",
-  "version": 1,
-  "active": true,
-  "features": ["解析", "折叠", "展示"],
-  "meta": {
-    "author": "你可以替换这里的 JSON",
-    "updated_at": "2024-06-01"
-  },
-  "items": [
-    {"id": 1, "name": "Alpha", "score": 9.2},
-    {"id": 2, "name": "Beta", "score": 7.8}
-  ]
+          <div class="controls">
+            <button id="parse-btn" class="primary" type="button">⚡ 解析</button>
+            <button id="format-btn" class="secondary" type="button">💎 格式化</button>
+            <button id="sort-btn" class="secondary" type="button">🔢 排序键</button>
+            <button id="minify-btn" class="secondary" type="button">📦 压缩</button>
+            <button id="copy-btn" class="secondary" type="button">📋 复制</button>
+            <button id="clear-btn" class="ghost" type="button">🗑️ 清空</button>
+            <div style="flex: 1"></div>
+            <label class="toggle">
+              <input id="auto-parse" type="checkbox" checked>
+              自动解析
+            </label>
+          </div>
+          <div class="editor-container">
+            <textarea id="json-input" spellcheck="false" placeholder="在此粘贴 JSON 代码...">{
+  "title": "JSON 结构浏览器",
+  "version": "2.0",
+  "features": [
+    "高性能树渲染",
+    "语义化搜索",
+    "主题自由切换",
+    "快捷键支持"
+  ],
+  "author": {
+    "name": "Codex",
+    "links": ["github.com/json"]
+  }
 }</textarea>
-        <input id="file-input" type="file" accept=".json,application/json" hidden>
+          </div>
+          <div class="controls">
+            <button id="open-btn" class="secondary" type="button">📂 打开文件</button>
+            <button id="paste-btn" class="secondary" type="button">📋 从剪贴板粘贴</button>
+            <input id="file-input" type="file" accept=".json,application/json" hidden>
+          </div>
         </section>
       </div>
       <div class="divider" id="divider"></div>
       <div class="pane" id="pane-right">
         <section class="panel">
-        <div class="panel-head">
-          <h2>JSON 结构</h2>
-          <div class="controls">
-            <div class="field" title="按 key / 值 搜索，清空可恢复折叠状态">
-              <span class="meta">搜索</span>
-              <input id="search-input" type="text" placeholder="例如：id / Alpha / items[0]" autocomplete="off" />
-              <button id="search-clear" class="secondary" type="button">清空</button>
+          <div class="panel-head">
+            <h2>JSON 结构</h2>
+            <div class="controls">
+              <button id="expand-all" class="ghost" type="button">➕ 全部展开</button>
+              <button id="collapse-all" class="ghost" type="button">➖ 全部折叠</button>
             </div>
-            <button id="expand-all" class="secondary" type="button">全部展开</button>
-            <button id="collapse-all" class="secondary" type="button">全部折叠</button>
           </div>
-        </div>
-        <div class="info" id="info-bar">
-          <span>匹配：<strong id="match-count">0</strong></span>
-          <span>选中：<span class="mono" id="selected-path">-</span></span>
-          <button id="copy-path" class="secondary" type="button">复制路径</button>
-          <button id="copy-value" class="secondary" type="button">复制值</button>
-        </div>
-        <ul class="tree" id="json-tree"></ul>
+          <div class="controls">
+            <div class="search-container">
+              <span>🔍</span>
+              <input id="search-input" type="text" placeholder="搜索 Key 或 Value..." autocomplete="off" />
+              <button id="search-clear" class="ghost" style="padding: 2px 6px;" type="button">✕</button>
+            </div>
+            <span class="status">匹配: <strong id="match-count">0</strong></span>
+          </div>
+          <div class="info-bar">
+            <span>选中路径:</span>
+            <div class="path-display" id="selected-path">-</div>
+            <button id="copy-path" class="secondary" style="padding: 4px 8px;" type="button">复制路径</button>
+            <button id="copy-value" class="secondary" style="padding: 4px 8px;" type="button">复制值</button>
+          </div>
+          <ul class="tree" id="json-tree"></ul>
         </section>
       </div>
     </div>
   </div>
+  <div id="toast" class="toast">已复制到剪贴板</div>
 
 <script>
     const inputEl = document.getElementById('json-input');
@@ -621,6 +572,7 @@
     const parseBtn = document.getElementById('parse-btn');
     const formatBtn = document.getElementById('format-btn');
     const minifyBtn = document.getElementById('minify-btn');
+    const sortBtn = document.getElementById('sort-btn');
     const copyBtn = document.getElementById('copy-btn');
     const openBtn = document.getElementById('open-btn');
     const pasteBtn = document.getElementById('paste-btn');
@@ -649,9 +601,16 @@
     let selected = null;
     let filterSnapshot = null;
 
+    const showToast = (message) => {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    };
+
     const applyTheme = (theme) => {
       document.documentElement.dataset.theme = theme;
-      themeToggle.textContent = theme === 'light' ? '切换为深色' : '切换为浅色';
+      themeToggle.textContent = theme === 'light' ? '🌙 深色模式' : '☀️ 浅色模式';
     };
 
     const initTheme = () => {
@@ -683,17 +642,6 @@
       return typeof value;
     };
 
-    const previewValue = (value) => {
-      const t = valueType(value);
-      if (t === 'array') return `Array(${value.length})`;
-      if (t === 'object') return `Object(${Object.keys(value).length})`;
-      return JSON.stringify(value);
-    };
-
-    const collectCollapsedPaths = () => new Set(
-      Array.from(treeEl.querySelectorAll('li.node.collapsed')).map((el) => el.dataset.path).filter(Boolean)
-    );
-
     const renderTree = (data, collapsedPaths = new Set()) => {
       treeEl.innerHTML = '';
       selected = null;
@@ -712,86 +660,75 @@
         header.className = 'node-header';
         header.tabIndex = 0;
 
-        const caret = document.createElement('span');
-        caret.className = 'caret';
-        caret.textContent = '▾';
-
-        const keyEl = document.createElement('span');
-        keyEl.className = 'node-key';
-        keyEl.textContent = isRoot ? key : key;
-
-        const meta = document.createElement('span');
-        meta.className = 'node-meta';
-
         const t = valueType(value);
         node.dataset.type = t;
 
-        if (t === 'array') {
-          meta.textContent = `数组 · ${value.length} 项`;
-          node.dataset.count = String(value.length);
-        } else if (t === 'object') {
-          const count = Object.keys(value).length;
-          meta.textContent = `对象 · ${count} 个键`;
-          node.dataset.count = String(count);
-        } else {
-          meta.textContent = t;
-        }
+        const caret = document.createElement('span');
+        caret.className = 'caret';
+        caret.textContent = (t === 'object' || t === 'array') ? '▼' : '';
 
-        header.append(caret, keyEl, meta);
+        const keyEl = document.createElement('span');
+        keyEl.className = 'node-key';
+        keyEl.textContent = isRoot ? 'root' : key;
+
+        header.append(caret, keyEl);
 
         if (t === 'object' || t === 'array') {
+          const meta = document.createElement('span');
+          meta.className = 'node-meta';
+          const count = t === 'array' ? value.length : Object.keys(value).length;
+          meta.textContent = t === 'array' ? `[${count}]` : `{${count}}`;
+          header.append(meta);
+
           const children = document.createElement('ul');
           children.className = 'children';
           node.append(header, children);
           if (collapsedPaths.has(path)) node.classList.add('collapsed');
         } else {
-          node.classList.add('leaf', 'node-primitive');
+          node.classList.add('leaf');
           const valEl = document.createElement('span');
-          valEl.className = 'node-value';
-          valEl.textContent = previewValue(value);
-          node.dataset.value = valEl.textContent;
-          header.append(valEl);
+          valEl.className = `node-value ${t}`;
+          valEl.textContent = t === 'string' ? `"${value}"` : String(value);
+          header.append(document.createTextNode(': '), valEl);
           node.append(header);
+          node.dataset.value = String(value);
         }
 
-        const searchText = `${path || ''} ${key} ${t} ${node.dataset.value || meta.textContent || ''}`.toLowerCase();
+        const searchText = `${path || ''} ${key} ${t} ${node.dataset.value || ''}`.toLowerCase();
         node.dataset.search = searchText;
         nodeCount += 1;
         return node;
       };
 
-      const rootNode = makeNode('root', data, '/');
+      const rootNode = makeNode('root', data, '/', true);
       fragment.appendChild(rootNode);
 
       const rootChildren = rootNode.querySelector(':scope > ul.children');
-      const stack = [{ parentUl: rootChildren, value: data, path: '/' }];
-
-      while (stack.length) {
-        const frame = stack.pop();
-        const { parentUl, value, path } = frame;
-        const t = valueType(value);
-        if (t !== 'object' && t !== 'array') continue;
-
-        if (t === 'array') {
-          for (let i = value.length - 1; i >= 0; i -= 1) {
-            const childVal = value[i];
-            const key = `[${i}]`;
-            const childPath = joinPath(path, String(i));
-            const node = makeNode(key, childVal, childPath);
-            parentUl.prepend(node);
-            const ul = node.querySelector(':scope > ul.children');
-            if (ul) stack.push({ parentUl: ul, value: childVal, path: childPath });
-          }
-        } else {
-          const keys = Object.keys(value);
-          for (let i = keys.length - 1; i >= 0; i -= 1) {
-            const k = keys[i];
-            const childVal = value[k];
-            const childPath = joinPath(path, k);
-            const node = makeNode(k, childVal, childPath);
-            parentUl.prepend(node);
-            const ul = node.querySelector(':scope > ul.children');
-            if (ul) stack.push({ parentUl: ul, value: childVal, path: childPath });
+      if (rootChildren) {
+        const stack = [{ parentUl: rootChildren, value: data, path: '/' }];
+        while (stack.length) {
+          const frame = stack.pop();
+          const { parentUl, value, path } = frame;
+          const t = valueType(value);
+          
+          if (t === 'array') {
+            for (let i = value.length - 1; i >= 0; i -= 1) {
+              const childPath = joinPath(path, i);
+              const node = makeNode(`[${i}]`, value[i], childPath);
+              parentUl.prepend(node);
+              const ul = node.querySelector(':scope > ul.children');
+              if (ul) stack.push({ parentUl: ul, value: value[i], path: childPath });
+            }
+          } else if (t === 'object') {
+            const keys = Object.keys(value);
+            for (let i = keys.length - 1; i >= 0; i -= 1) {
+              const k = keys[i];
+              const childPath = joinPath(path, k);
+              const node = makeNode(k, value[k], childPath);
+              parentUl.prepend(node);
+              const ul = node.querySelector(':scope > ul.children');
+              if (ul) stack.push({ parentUl: ul, value: value[k], path: childPath });
+            }
           }
         }
       }
@@ -837,14 +774,23 @@
     };
 
     const writeClipboard = async (text) => {
-      if (!navigator.clipboard?.writeText) throw new Error('当前环境不支持 Clipboard API');
-      await navigator.clipboard.writeText(text);
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error('当前环境不支持 Clipboard API');
+        await navigator.clipboard.writeText(text);
+        showToast('已成功复制到剪贴板');
+      } catch (err) {
+        setStatus('ERR', err.message);
+      }
     };
 
     const readClipboard = async () => {
       if (!navigator.clipboard?.readText) throw new Error('当前环境不支持 Clipboard API');
       return navigator.clipboard.readText();
     };
+
+    const collectCollapsedPaths = () => new Set(
+      Array.from(treeEl.querySelectorAll('li.node.collapsed')).map((el) => el.dataset.path).filter(Boolean)
+    );
 
     const parseAndRender = () => {
       const raw = inputEl.value.trim();
@@ -853,7 +799,7 @@
         lastParsed = null;
         matchCountEl.textContent = '0';
         selectedPathEl.textContent = '-';
-        setStatus('OK', '请输入 JSON（支持拖拽 .json 文件到页面）');
+        setStatus('OK', '等待输入...');
         return;
       }
       try {
@@ -863,7 +809,7 @@
         const ms = Math.max(0, performance.now() - start);
         lastParsed = parsed;
         const { nodeCount } = renderTree(parsed, collapsed);
-        setStatus('OK', `解析成功 · 节点 ${nodeCount} · 耗时 ${ms.toFixed(1)}ms`);
+        setStatus('OK', `解析成功 · ${nodeCount} 节点 · ${ms.toFixed(1)}ms`);
         applyFilter(searchInput.value);
       } catch (err) {
         treeEl.innerHTML = '';
@@ -871,7 +817,7 @@
         const pos = extractErrorPosition(err.message);
         if (pos !== null) {
           const { line, col } = lineColAt(inputEl.value, pos);
-          setStatus('ERR', `${err.message}（第 ${line} 行，第 ${col} 列）`);
+          setStatus('ERR', `语法错误: 第 ${line} 行, 第 ${col} 列`);
           focusErrorAt(pos);
         } else {
           setStatus('ERR', err.message);
@@ -888,9 +834,11 @@
 
     formatBtn.addEventListener('click', () => {
       try {
+        if (!inputEl.value.trim()) return;
         const parsed = JSON.parse(inputEl.value);
         inputEl.value = JSON.stringify(parsed, null, 2);
         parseAndRender();
+        showToast('已格式化');
       } catch (err) {
         setStatus('ERR', err.message);
       }
@@ -898,22 +846,44 @@
 
     minifyBtn.addEventListener('click', () => {
       try {
+        if (!inputEl.value.trim()) return;
         const parsed = JSON.parse(inputEl.value);
         inputEl.value = JSON.stringify(parsed);
         parseAndRender();
+        showToast('已压缩');
+      } catch (err) {
+        setStatus('ERR', err.message);
+      }
+    });
+
+    sortBtn.addEventListener('click', () => {
+      try {
+        if (!inputEl.value.trim()) return;
+        const parsed = JSON.parse(inputEl.value);
+        
+        const sortObject = (obj) => {
+          if (obj === null || typeof obj !== 'object') return obj;
+          if (Array.isArray(obj)) return obj.map(sortObject);
+          return Object.keys(obj).sort().reduce((acc, key) => {
+            acc[key] = sortObject(obj[key]);
+            return acc;
+          }, {});
+        };
+
+        inputEl.value = JSON.stringify(sortObject(parsed), null, 2);
+        parseAndRender();
+        showToast('键已按字母顺序排序');
       } catch (err) {
         setStatus('ERR', err.message);
       }
     });
 
     copyBtn.addEventListener('click', async () => {
-      try {
-        if (lastParsed === null) throw new Error('没有可复制的结果（请先解析）');
-        await writeClipboard(JSON.stringify(lastParsed, null, 2));
-        setStatus('OK', '已复制格式化 JSON');
-      } catch (err) {
-        setStatus('ERR', err.message);
+      if (lastParsed === null) {
+        setStatus('ERR', '请先解析 JSON');
+        return;
       }
+      await writeClipboard(JSON.stringify(lastParsed, null, 2));
     });
 
     openBtn.addEventListener('click', () => fileInput.click());
@@ -931,8 +901,9 @@
         const text = await readClipboard();
         inputEl.value = text;
         parseAndRender();
+        showToast('已从剪贴板粘贴');
       } catch (err) {
-        setStatus('ERR', err.message);
+        setStatus('ERR', '粘贴失败: ' + err.message);
       }
     });
 
@@ -946,15 +917,25 @@
       matchCountEl.textContent = '0';
       selectedPathEl.textContent = '-';
       setStatus('OK', '已清空');
+      showToast('已清空');
     });
 
     expandAllBtn.addEventListener('click', () => {
-      treeEl.querySelectorAll('.node.collapsed').forEach((el) => el.classList.remove('collapsed'));
+      const nodes = treeEl.querySelectorAll('.node.collapsed');
+      nodes.forEach((el) => el.classList.remove('collapsed'));
+      showToast(`已展开 ${nodes.length} 个节点`);
     });
+
     collapseAllBtn.addEventListener('click', () => {
-      treeEl.querySelectorAll('.node').forEach((el) => {
-        if (!el.classList.contains('leaf')) el.classList.add('collapsed');
+      const nodes = treeEl.querySelectorAll('.node:not(.leaf)');
+      let count = 0;
+      nodes.forEach((el) => {
+        if (el.dataset.path !== '/') {
+          el.classList.add('collapsed');
+          count++;
+        }
       });
+      showToast(`已折叠 ${count} 个节点`);
     });
 
     themeToggle.addEventListener('click', () => {
@@ -978,7 +959,7 @@
     autoParseEl.addEventListener('change', () => setAutoParse(autoParseEl.checked));
 
     const setSplit = (ratio) => {
-      const clamped = Math.min(Math.max(ratio, 0.25), 0.75);
+      const clamped = Math.min(Math.max(ratio, 0.2), 0.8);
       paneLeft.style.flexBasis = `${clamped * 100}%`;
       paneRight.style.flexBasis = `${(1 - clamped) * 100}%`;
       return clamped;
@@ -986,108 +967,85 @@
 
     const initSplit = () => {
       const stored = parseFloat(localStorage.getItem(SPLIT_KEY));
-      if (!Number.isNaN(stored)) {
-        setSplit(stored);
-      } else {
-        setSplit(0.48);
-      }
+      setSplit(!Number.isNaN(stored) ? stored : 0.45);
     };
 
     const startDrag = (e) => {
       e.preventDefault();
       const containerRect = panesEl.getBoundingClientRect();
-      const startX = e.clientX;
-      const startLeftWidth = paneLeft.getBoundingClientRect().width;
-      dividerEl.classList.add('dragging');
-
       const onMove = (ev) => {
-        const delta = ev.clientX - startX;
-        const newLeft = startLeftWidth + delta;
-        const ratio = newLeft / containerRect.width;
+        const ratio = (ev.clientX - containerRect.left) / containerRect.width;
         const clamped = setSplit(ratio);
         localStorage.setItem(SPLIT_KEY, clamped);
       };
-
       const onUp = () => {
         dividerEl.classList.remove('dragging');
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
       };
-
+      dividerEl.classList.add('dragging');
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     };
 
     dividerEl.addEventListener('mousedown', startDrag);
 
-    const clearSelection = () => {
-      treeEl.querySelectorAll('.node.selected').forEach((el) => el.classList.remove('selected'));
-      selected = null;
-      selectedPathEl.textContent = '-';
-    };
-
     const setSelected = (node) => {
       if (!node) return;
       treeEl.querySelectorAll('.node.selected').forEach((el) => el.classList.remove('selected'));
       node.classList.add('selected');
       selected = node;
-      selectedPathEl.textContent = node.dataset.path || '-';
+      selectedPathEl.textContent = node.dataset.path || '/';
     };
 
     treeEl.addEventListener('click', (e) => {
       const header = e.target.closest('.node-header');
       if (!header) return;
       const node = header.closest('li.node');
-      if (!node) return;
       setSelected(node);
       if (!node.classList.contains('leaf')) node.classList.toggle('collapsed');
     });
 
     treeEl.addEventListener('keydown', (e) => {
-      const header = e.target.closest('.node-header');
-      if (!header) return;
-      if (e.key !== 'Enter' && e.key !== ' ') return;
-      e.preventDefault();
-      header.click();
+      if (e.key === 'Enter' || e.key === ' ') {
+        const header = e.target.closest('.node-header');
+        if (header) {
+          e.preventDefault();
+          header.click();
+        }
+      }
     });
 
     const applyFilter = (queryRaw) => {
       const query = (queryRaw || '').trim().toLowerCase();
       const nodes = Array.from(treeEl.querySelectorAll('li.node'));
-      if (!nodes.length) {
-        matchCountEl.textContent = '0';
-        return;
-      }
+      if (!nodes.length) return;
 
       if (!query) {
-        nodes.forEach((n) => {
-          n.classList.remove('filtered-out', 'match');
-        });
+        nodes.forEach((n) => n.classList.remove('filtered-out', 'match'));
         matchCountEl.textContent = '0';
         if (filterSnapshot) {
-          const { collapsedPaths } = filterSnapshot;
           nodes.forEach((n) => {
-            if (n.classList.contains('leaf')) return;
-            n.classList.toggle('collapsed', collapsedPaths.has(n.dataset.path));
+            if (!n.classList.contains('leaf')) {
+              n.classList.toggle('collapsed', filterSnapshot.collapsedPaths.has(n.dataset.path));
+            }
           });
           filterSnapshot = null;
         }
         return;
       }
 
-      if (!filterSnapshot) {
-        filterSnapshot = { collapsedPaths: collectCollapsedPaths() };
-      }
+      if (!filterSnapshot) filterSnapshot = { collapsedPaths: collectCollapsedPaths() };
 
       nodes.forEach((n) => n.classList.add('filtered-out'));
-      let matchCount = 0;
+      let count = 0;
 
       for (const node of nodes) {
         node.classList.remove('match');
         if (!node.dataset.search?.includes(query)) continue;
-        matchCount += 1;
+        
+        count += 1;
         node.classList.add('match');
-
         let cur = node;
         while (cur && cur !== treeEl) {
           cur.classList.remove('filtered-out');
@@ -1095,14 +1053,10 @@
           cur = cur.parentElement?.closest('li.node');
         }
       }
-
-      const root = treeEl.querySelector(':scope > li.node');
-      if (root) root.classList.remove('filtered-out');
-      matchCountEl.textContent = String(matchCount);
+      matchCountEl.textContent = count;
     };
 
-    const filterDebounced = debounce(() => applyFilter(searchInput.value), 150);
-    searchInput.addEventListener('input', filterDebounced);
+    searchInput.addEventListener('input', debounce(() => applyFilter(searchInput.value), 200));
     searchClear.addEventListener('click', () => {
       searchInput.value = '';
       applyFilter('');
@@ -1115,37 +1069,23 @@
       let cur = data;
       for (const part of parts) {
         if (cur === null || cur === undefined) return undefined;
-        if (Array.isArray(cur)) {
-          const idx = Number(part);
-          if (!Number.isInteger(idx)) return undefined;
-          cur = cur[idx];
-        } else {
-          cur = cur[part];
-        }
+        cur = Array.isArray(cur) ? cur[Number(part)] : cur[part];
       }
       return cur;
     };
 
-    copyPathBtn.addEventListener('click', async () => {
-      try {
-        if (!selected?.dataset.path) throw new Error('请先在右侧树中点选一个节点');
-        await writeClipboard(selected.dataset.path);
-        setStatus('OK', '已复制路径（JSON Pointer）');
-      } catch (err) {
-        setStatus('ERR', err.message);
-      }
+    copyPathBtn.addEventListener('click', () => {
+      if (selected?.dataset.path) writeClipboard(selected.dataset.path);
+      else showToast('请先选择一个节点');
     });
 
-    copyValueBtn.addEventListener('click', async () => {
-      try {
-        if (lastParsed === null) throw new Error('没有可复制的值（请先解析）');
-        if (!selected?.dataset.path) throw new Error('请先在右侧树中点选一个节点');
-        const value = findValueAtPointer(lastParsed, selected.dataset.path);
-        await writeClipboard(JSON.stringify(value, null, 2));
-        setStatus('OK', '已复制值');
-      } catch (err) {
-        setStatus('ERR', err.message);
+    copyValueBtn.addEventListener('click', () => {
+      if (!selected?.dataset.path || lastParsed === null) {
+        showToast('请先选择一个节点');
+        return;
       }
+      const val = findValueAtPointer(lastParsed, selected.dataset.path);
+      writeClipboard(JSON.stringify(val, null, 2));
     });
 
     const onDrop = async (e) => {
