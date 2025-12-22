@@ -899,12 +899,29 @@
 
     pasteBtn.addEventListener('click', async () => {
       try {
+        // 先尝试聚焦输入框，这是个好的交互习惯
+        inputEl.focus();
+        
+        // 检查协议
+        if (location.protocol === 'file:') {
+          throw new Error('浏览器安全限制：本地文件无法直接通过按钮读取剪贴板，请直接使用快捷键 ⌘+V (Mac) 或 Ctrl+V (Win) 进行粘贴。');
+        }
+
         const text = await readClipboard();
-        inputEl.value = text;
-        parseAndRender();
-        showToast('已从剪贴板粘贴');
+        if (text) {
+          inputEl.value = text;
+          parseAndRender();
+          showToast('已从剪贴板粘贴');
+        }
       } catch (err) {
-        setStatus('ERR', '粘贴失败: ' + err.message);
+        console.error('Paste error:', err);
+        // 如果是权限问题或协议问题，给出明确引导
+        const msg = err.message.includes('permission') || location.protocol === 'file:'
+          ? '无法访问剪贴板，请直接使用快捷键 ⌘+V / Ctrl+V 粘贴'
+          : '粘贴失败: ' + err.message;
+        
+        setStatus('ERR', msg);
+        showToast('请直接使用快捷键粘贴');
       }
     });
 
