@@ -175,6 +175,13 @@
       overflow: hidden;
     }
 
+    .editor-unit {
+      flex: 1;
+      display: flex;
+      min-width: 0;
+      height: 100%;
+    }
+
     /* 模拟行号 */
     .line-numbers {
       padding: 16px 8px;
@@ -189,6 +196,30 @@
       min-width: 40px;
       overflow: hidden;
       white-space: pre;
+    }
+
+    /* Diff 样式 */
+    .node.diff-added { background: rgba(74, 222, 128, 0.1); border-left: 3px solid var(--success); }
+    .node.diff-removed { background: rgba(248, 113, 113, 0.1); border-left: 3px solid var(--danger); text-decoration: line-through; opacity: 0.8; }
+    .node.diff-changed { background: rgba(251, 191, 36, 0.1); border-left: 3px solid #fbbf24; }
+    
+    .diff-tag {
+      font-size: 10px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      margin-left: 6px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .diff-tag.added { background: var(--success); color: #000; }
+    .diff-tag.removed { background: var(--danger); color: #fff; }
+    .diff-tag.changed { background: #fbbf24; color: #000; }
+    
+    .diff-old-value {
+      color: var(--muted);
+      text-decoration: line-through;
+      margin-right: 8px;
+      font-size: 0.9em;
     }
 
     textarea {
@@ -527,13 +558,30 @@
       font-size: 12px;
     }
 
-    .path-display {
-      font-family: var(--font-mono);
-      color: var(--muted);
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .diff-nav {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      background: rgba(34, 211, 238, 0.08);
+      border-radius: 8px;
+      font-size: 12px;
+    }
+
+    .diff-nav.active {
+      display: flex;
+    }
+
+    .diff-nav-btn {
+      padding: 2px 6px;
+      font-size: 11px;
+      height: 24px;
+    }
+
+    .diff-count {
+      margin-right: 8px;
+      font-weight: 600;
+      color: var(--accent);
     }
 
     .drop-hint {
@@ -624,6 +672,7 @@
           </div>
           <div class="controls">
             <button id="parse-btn" class="primary" type="button">⚡ 解析</button>
+            <button id="diff-btn" class="secondary" type="button">🔍 对比模式</button>
             <button id="format-btn" class="secondary" type="button">💎 格式化</button>
             <button id="sort-btn" class="secondary" type="button">🔢 排序键</button>
             <button id="minify-btn" class="secondary" type="button">📦 压缩</button>
@@ -635,9 +684,10 @@
               自动解析
             </label>
           </div>
-          <div class="editor-container">
-            <div class="line-numbers" id="line-numbers">1</div>
-            <textarea id="json-input" spellcheck="false" placeholder="在此粘贴 JSON 代码...">{
+          <div class="editor-container" id="editor-wrapper">
+            <div class="editor-unit" id="unit-1">
+              <div class="line-numbers" id="line-numbers">1</div>
+              <textarea id="json-input" spellcheck="false" placeholder="在此粘贴 JSON 代码...">{
   "title": "JSON Viewer Pro",
   "version": "3.0",
   "features": [
@@ -648,6 +698,11 @@
     "节点右键菜单"
   ]
 }</textarea>
+            </div>
+            <div class="editor-unit" id="unit-2" style="display: none; border-left: 1px solid var(--border);">
+              <div class="line-numbers" id="line-numbers-2">1</div>
+              <textarea id="json-input-2" spellcheck="false" placeholder="在此粘贴要对比的 JSON 代码..."></textarea>
+            </div>
           </div>
           <div class="editor-stats">
             <span id="char-count">字符: 0</span>
@@ -682,6 +737,13 @@
             </div>
             <span class="status"><strong id="current-match-index">0</strong> / <span id="match-count">0</span></span>
           </div>
+          <div class="controls diff-nav" id="diff-navigation">
+            <span class="diff-count">差异: <strong id="current-diff-index">0</strong> / <span id="total-diff-count">0</span></span>
+            <button id="diff-first" class="secondary diff-nav-btn" type="button" title="第一个">第一</button>
+            <button id="diff-prev" class="secondary diff-nav-btn" type="button" title="上一个">上一个</button>
+            <button id="diff-next" class="secondary diff-nav-btn" type="button" title="下一个">下一个</button>
+            <button id="diff-last" class="secondary diff-nav-btn" type="button" title="最后一个">最后</button>
+          </div>
           <div class="info-bar">
             <span>路径:</span>
             <div class="path-display" id="selected-path">-</div>
@@ -710,9 +772,11 @@
 
 <script>
     const inputEl = document.getElementById('json-input');
+    const inputEl2 = document.getElementById('json-input-2');
     const treeEl = document.getElementById('json-tree');
     const statusEl = document.getElementById('status');
     const parseBtn = document.getElementById('parse-btn');
+    const diffBtn = document.getElementById('diff-btn');
     const formatBtn = document.getElementById('format-btn');
     const minifyBtn = document.getElementById('minify-btn');
     const sortBtn = document.getElementById('sort-btn');
@@ -735,6 +799,11 @@
     const dividerEl = document.getElementById('divider');
     const paneLeft = document.getElementById('pane-left');
     const paneRight = document.getElementById('pane-right');
+    const unit2 = document.getElementById('unit-2');
+    const lineNumbers2 = document.getElementById('line-numbers-2');
+    const diffNavEl = document.getElementById('diff-navigation');
+    const totalDiffCountEl = document.getElementById('total-diff-count');
+    const currentDiffIndexEl = document.getElementById('current-diff-index');
 
     const THEME_KEY = 'json-viewer-theme';
     const SPLIT_KEY = 'json-viewer-split';
@@ -745,12 +814,114 @@
     let filterSnapshot = null;
     let searchMatches = [];
     let currentMatchIndex = -1;
+    let isDiffMode = false;
+    let lastParsed2 = null;
+    let diffMatches = [];
+    let currentDiffIndex = -1;
 
     // --- 实用工具函数 ---
     const valueType = (val) => {
       if (val === null) return 'null';
       if (Array.isArray(val)) return 'array';
       return typeof val;
+    };
+
+    const isDeepEqual = (v1, v2) => {
+      const t1 = valueType(v1);
+      const t2 = valueType(v2);
+      if (t1 !== t2) return false;
+      if (t1 === 'object') {
+        const k1 = Object.keys(v1);
+        const k2 = Object.keys(v2);
+        if (k1.length !== k2.length) return false;
+        return k1.every(k => k in v2 && isDeepEqual(v1[k], v2[k]));
+      }
+      if (t1 === 'array') {
+        if (v1.length !== v2.length) return false;
+        return v1.every((v, i) => isDeepEqual(v, v2[i]));
+      }
+      return v1 === v2;
+    };
+
+    const deepDiff = (obj1, obj2) => {
+      const type1 = valueType(obj1);
+      const type2 = valueType(obj2);
+
+      if (type1 !== type2) {
+        return { type: 'changed', oldVal: obj1, newVal: obj2 };
+      }
+
+      if (type1 === 'array') {
+        const n = obj1.length;
+        const m = obj2.length;
+        const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+
+        for (let i = 1; i <= n; i++) {
+          for (let j = 1; j <= m; j++) {
+            if (isDeepEqual(obj1[i - 1], obj2[j - 1])) {
+              dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+              dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+            }
+          }
+        }
+
+        const diffs = [];
+        let i = n, j = m;
+        while (i > 0 || j > 0) {
+          if (i > 0 && j > 0 && isDeepEqual(obj1[i - 1], obj2[j - 1])) {
+            diffs.unshift({ type: 'equal', val: obj1[i - 1] });
+            i--; j--;
+          } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+            diffs.unshift({ type: 'added', newVal: obj2[j - 1] });
+            j--;
+          } else {
+            diffs.unshift({ type: 'removed', oldVal: obj1[i - 1] });
+            i--;
+          }
+        }
+
+        // 尝试合并相邻的 removed/added 为 changed
+        const optimized = [];
+        for (let k = 0; k < diffs.length; k++) {
+          const curr = diffs[k];
+          const next = diffs[k + 1];
+          if (curr.type === 'removed' && next && next.type === 'added') {
+            const d = deepDiff(curr.oldVal, next.newVal);
+            if (d.type !== 'changed' || (valueType(curr.oldVal) === valueType(next.newVal) && typeof curr.oldVal === 'object' && curr.oldVal !== null)) {
+              optimized.push(d);
+              k++;
+              continue;
+            }
+          }
+          optimized.push(curr);
+        }
+
+        const hasDiff = optimized.some(d => d.type !== 'equal');
+        return hasDiff ? { type: 'object-diff', diffs: optimized, kind: 'array' } : { type: 'equal', val: obj1 };
+      }
+
+      if (type1 === 'object') {
+        const result = {};
+        const keys = new Set([...Object.keys(obj1), ...Object.keys(obj2)]);
+        let hasDiff = false;
+        keys.forEach(key => {
+          if (!(key in obj1)) {
+            result[key] = { type: 'added', newVal: obj2[key] };
+            hasDiff = true;
+          } else if (!(key in obj2)) {
+            result[key] = { type: 'removed', oldVal: obj1[key] };
+            hasDiff = true;
+          } else {
+            const diff = deepDiff(obj1[key], obj2[key]);
+            result[key] = diff;
+            if (diff.type !== 'equal') hasDiff = true;
+          }
+        });
+        return hasDiff ? { type: 'object-diff', diffs: result, kind: 'object' } : { type: 'equal', val: obj1 };
+      }
+
+      return obj1 === obj2 ? { type: 'equal', val: obj1 } : { type: 'changed', oldVal: obj1, newVal: obj2 };
     };
 
     const joinPath = (parent, key) => {
@@ -800,8 +971,25 @@
       lineNumbers.textContent = nums;
     };
 
+    let isSyncingScroll = false;
     inputEl.addEventListener('scroll', () => {
       lineNumbers.scrollTop = inputEl.scrollTop;
+      if (isDiffMode && !isSyncingScroll) {
+        isSyncingScroll = true;
+        inputEl2.scrollTop = inputEl.scrollTop;
+        inputEl2.scrollLeft = inputEl.scrollLeft;
+        isSyncingScroll = false;
+      }
+    });
+
+    inputEl2.addEventListener('scroll', () => {
+      lineNumbers2.scrollTop = inputEl2.scrollTop;
+      if (isDiffMode && !isSyncingScroll) {
+        isSyncingScroll = true;
+        inputEl.scrollTop = inputEl2.scrollTop;
+        inputEl.scrollLeft = inputEl2.scrollLeft;
+        isSyncingScroll = false;
+      }
     });
 
     inputEl.addEventListener('input', updateEditorStats);
@@ -831,24 +1019,63 @@
     // --- 分块异步渲染 (核心性能优化) ---
     const requestIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 1));
 
-    const renderTreeAsync = (data, collapsedPaths = new Set()) => {
+    const renderTreeAsync = (data, collapsedPaths = new Set(), isDiff = false) => {
       return new Promise((resolve) => {
         treeEl.innerHTML = '';
         selected = null;
+        diffMatches = [];
+        currentDiffIndex = -1;
         if (selectedPathEl) selectedPathEl.textContent = '-';
         if (matchCountEl) matchCountEl.textContent = '0';
         const midxEl = document.getElementById('current-match-index');
         if (midxEl) midxEl.textContent = '0';
+        
+        if (isDiff) {
+          diffNavEl.classList.add('active');
+          totalDiffCountEl.textContent = '0';
+          currentDiffIndexEl.textContent = '0';
+        } else {
+          diffNavEl.classList.remove('active');
+        }
 
         const CHUNK_SIZE = 400;
         let totalNodes = 0;
         const fragment = document.createDocumentFragment();
 
-        const makeNode = (key, value, path, isRoot = false) => {
+        const makeNode = (key, value, path, isRoot = false, parentDiffType = 'equal') => {
           const node = document.createElement('li');
           node.className = 'node';
           node.dataset.path = path || '';
-          const t = valueType(value);
+          
+          let displayValue = value;
+          let diffType = parentDiffType;
+          let oldVal = null;
+          let isActualDiff = false;
+
+          if (isDiff && value && typeof value === 'object' && 'type' in value) {
+            if (['added', 'removed', 'changed', 'object-diff', 'equal'].includes(value.type)) {
+              diffType = value.type;
+              if (diffType === 'added') displayValue = value.newVal;
+              else if (diffType === 'removed') displayValue = value.oldVal;
+              else if (diffType === 'changed') { displayValue = value.newVal; oldVal = value.oldVal; }
+              else if (diffType === 'object-diff') displayValue = value.diffs;
+              else if (diffType === 'equal') displayValue = value.val;
+              
+              if (diffType !== 'equal' && diffType !== 'object-diff') {
+                isActualDiff = true;
+              }
+            }
+          }
+
+          if (diffType === 'added') node.classList.add('diff-added');
+          else if (diffType === 'removed') node.classList.add('diff-removed');
+          else if (diffType === 'changed' || diffType === 'object-diff') node.classList.add('diff-changed');
+
+          if (isActualDiff) {
+            diffMatches.push(node);
+          }
+
+          const t = valueType(displayValue);
           node.dataset.type = t;
 
           const header = document.createElement('div');
@@ -865,10 +1092,17 @@
 
           header.append(caret, keyEl);
 
+          if (isDiff && value && typeof value === 'object' && 'type' in value && value.type !== 'equal' && value.type !== 'object-diff') {
+            const tag = document.createElement('span');
+            tag.className = `diff-tag ${value.type}`;
+            tag.textContent = value.type === 'added' ? '+' : (value.type === 'removed' ? '-' : 'mod');
+            header.append(tag);
+          }
+
           if (t === 'object' || t === 'array') {
             const meta = document.createElement('span');
             meta.className = 'node-meta';
-            const count = t === 'array' ? value.length : Object.keys(value).length;
+            const count = t === 'array' ? displayValue.length : Object.keys(displayValue).length;
             meta.textContent = t === 'array' ? `[${count}]` : `{${count}}`;
             header.append(meta);
 
@@ -876,15 +1110,24 @@
             children.className = 'children';
             node.append(header, children);
             if (collapsedPaths.has(path)) node.classList.add('collapsed');
-            return { node, children };
+            return { node, children, displayValue, diffType };
           } else {
             node.classList.add('leaf');
             const valEl = document.createElement('span');
             valEl.className = `node-value ${t}`;
-            valEl.textContent = t === 'string' ? `"${value}"` : String(value);
-            header.append(document.createTextNode(': '), valEl);
+            
+            if (isDiff && value && value.type === 'changed') {
+              const oldEl = document.createElement('span');
+              oldEl.className = 'diff-old-value';
+              oldEl.textContent = valueType(oldVal) === 'string' ? `"${oldVal}"` : String(oldVal);
+              header.append(document.createTextNode(': '), oldEl, valEl);
+            } else {
+              header.append(document.createTextNode(': '), valEl);
+            }
+            
+            valEl.textContent = t === 'string' ? `"${displayValue}"` : String(displayValue);
             node.append(header);
-            node.dataset.value = String(value);
+            node.dataset.value = String(displayValue);
             return { node };
           }
         };
@@ -893,32 +1136,42 @@
         fragment.appendChild(root.node);
         treeEl.appendChild(fragment); 
         
-        const stack = root.children ? [{ parentUl: root.children, value: data, path: '/' }] : [];
+        const stack = root.children ? [{ parentUl: root.children, value: root.displayValue, path: '/', diffType: root.diffType }] : [];
         
         const processChunk = () => {
           let processed = 0;
           while (stack.length > 0 && processed < CHUNK_SIZE) {
             const frame = stack.pop();
-            const { parentUl, value, path } = frame;
+            const { parentUl, value, path, diffType } = frame;
             const t = valueType(value);
             
+            const childDiffType = (diffType === 'object-diff' || diffType === 'equal') ? 'equal' : diffType;
+
             if (t === 'array') {
-              for (let i = value.length - 1; i >= 0; i--) {
+              const childrenToPush = [];
+              for (let i = 0; i < value.length; i++) {
                 const cp = joinPath(path, i);
-                const res = makeNode(`[${i}]`, value[i], cp);
-                parentUl.prepend(res.node);
-                if (res.children) stack.push({ parentUl: res.children, value: value[i], path: cp });
+                const res = makeNode(`[${i}]`, value[i], cp, false, childDiffType);
+                parentUl.append(res.node);
+                if (res.children) childrenToPush.push({ parentUl: res.children, value: res.displayValue, path: cp, diffType: res.diffType });
                 totalNodes++;
+              }
+              for (let i = childrenToPush.length - 1; i >= 0; i--) {
+                stack.push(childrenToPush[i]);
               }
             } else if (t === 'object') {
               const keys = Object.keys(value);
-              for (let i = keys.length - 1; i >= 0; i--) {
+              const childrenToPush = [];
+              for (let i = 0; i < keys.length; i++) {
                 const k = keys[i];
                 const cp = joinPath(path, k);
-                const res = makeNode(k, value[k], cp);
-                parentUl.prepend(res.node);
-                if (res.children) stack.push({ parentUl: res.children, value: value[k], path: cp });
+                const res = makeNode(k, value[k], cp, false, childDiffType);
+                parentUl.append(res.node);
+                if (res.children) childrenToPush.push({ parentUl: res.children, value: res.displayValue, path: cp, diffType: res.diffType });
                 totalNodes++;
+              }
+              for (let i = childrenToPush.length - 1; i >= 0; i--) {
+                stack.push(childrenToPush[i]);
               }
             }
             processed++;
@@ -928,6 +1181,14 @@
             requestIdle(processChunk);
           } else {
             if (searchInput.value) applyFilter(searchInput.value);
+            if (isDiff) {
+              totalDiffCountEl.textContent = diffMatches.length;
+              if (diffMatches.length > 0) {
+                currentDiffIndex = 0;
+                currentDiffIndexEl.textContent = '1';
+                // 默认不滚动到第一个，让用户自己点
+              }
+            }
             resolve({ nodeCount: totalNodes + 1 });
           }
         };
@@ -1024,6 +1285,29 @@
       setSelected(target);
       document.getElementById('current-match-index').textContent = currentMatchIndex + 1;
     };
+
+    const navigateDiff = (index) => {
+      if (diffMatches.length === 0) return;
+      
+      currentDiffIndex = (index + diffMatches.length) % diffMatches.length;
+      const target = diffMatches[currentDiffIndex];
+      
+      // 展开父节点
+      let cur = target.parentElement.closest('li.node');
+      while (cur) {
+        cur.classList.remove('collapsed');
+        cur = cur.parentElement.closest('li.node');
+      }
+      
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setSelected(target);
+      currentDiffIndexEl.textContent = currentDiffIndex + 1;
+    };
+
+    document.getElementById('diff-first').onclick = () => navigateDiff(0);
+    document.getElementById('diff-last').onclick = () => navigateDiff(diffMatches.length - 1);
+    document.getElementById('diff-prev').onclick = () => navigateDiff(currentDiffIndex - 1);
+    document.getElementById('diff-next').onclick = () => navigateDiff(currentDiffIndex + 1);
 
     document.getElementById('search-next').onclick = () => navigateSearch(1);
     document.getElementById('search-prev').onclick = () => navigateSearch(-1);
@@ -1129,27 +1413,46 @@
 
     const parseAndRender = async () => {
       const raw = inputEl.value.trim();
-      if (!raw) {
+      const raw2 = isDiffMode ? inputEl2.value.trim() : null;
+
+      if (!raw && (!isDiffMode || !raw2)) {
         treeEl.innerHTML = '';
         lastParsed = null;
+        lastParsed2 = null;
         if (matchCountEl) matchCountEl.textContent = '0';
         if (selectedPathEl) selectedPathEl.textContent = '-';
         setStatus('OK', '等待输入...');
         return;
       }
+
       try {
         const collapsed = (filterSnapshot && filterSnapshot.collapsedPaths) || collectCollapsedPaths();
         const start = performance.now();
         
-        const cleanRaw = raw.replace(/("(?:\\.|[^\\"])*")|\/\*[\s\S]*?\*\/|\/\/.*/g, (m, g1) => g1 || "");
+        const cleanJSON = (str) => str.replace(/("(?:\\.|[^\\"])*")|\/\*[\s\S]*?\*\/|\/\/.*/g, (m, g1) => g1 || "");
         
-        const parsed = JSON.parse(cleanRaw);
-        const ms = Math.max(0, performance.now() - start);
+        const parsed = JSON.parse(cleanJSON(raw));
         lastParsed = parsed;
-        
-        setStatus('OK', `正在解析...`);
-        const result = await renderTreeAsync(parsed, collapsed);
-        setStatus('OK', `解析成功 · ${result.nodeCount} 节点 · ${ms.toFixed(1)}ms`);
+
+        let renderData = parsed;
+        let diffModeActive = false;
+
+        if (isDiffMode) {
+          try {
+            const parsed2 = JSON.parse(cleanJSON(raw2 || '{}'));
+            lastParsed2 = parsed2;
+            renderData = deepDiff(parsed, parsed2);
+            diffModeActive = true;
+          } catch (e) {
+            setStatus('ERR', `对比目标解析失败: ${e.message}`);
+            return;
+          }
+        }
+
+        const ms = Math.max(0, performance.now() - start);
+        setStatus('OK', diffModeActive ? `对比完成` : `正在解析...`);
+        const result = await renderTreeAsync(renderData, collapsed, diffModeActive);
+        setStatus('OK', (diffModeActive ? `对比完成` : `解析成功`) + ` · ${result.nodeCount} 节点 · ${ms.toFixed(1)}ms`);
       } catch (err) {
         console.error('Parse error:', err);
         treeEl.innerHTML = '';
@@ -1157,13 +1460,45 @@
         const pos = extractErrorPosition(err.message);
         if (pos !== null) {
           const { line, col } = lineColAt(inputEl.value, pos);
-          setStatus('ERR', `语法错误: 第 ${line} 行, 第 ${col} 列`);
+          setStatus('ERR', `源 JSON 语法错误: 第 ${line} 行, 第 ${col} 列`);
           focusErrorAt(pos);
         } else {
           setStatus('ERR', `解析失败: ${err.message}`);
         }
       }
     };
+
+    diffBtn.addEventListener('click', () => {
+      isDiffMode = !isDiffMode;
+      unit2.style.display = isDiffMode ? 'flex' : 'none';
+      diffBtn.classList.toggle('primary', isDiffMode);
+      diffBtn.classList.toggle('secondary', !isDiffMode);
+      diffBtn.innerHTML = isDiffMode ? '🔍 退出对比' : '🔍 对比模式';
+      
+      if (isDiffMode && !inputEl2.value.trim()) {
+        inputEl2.value = inputEl.value;
+      }
+      
+      parseAndRender();
+      updateEditorStats2();
+    });
+
+    const updateEditorStats2 = () => {
+      if (!isDiffMode) return;
+      const text = inputEl2.value;
+      const lines = text.split('\n');
+      const nums = lines.map((_, i) => i + 1).join('\n');
+      lineNumbers2.textContent = nums;
+    };
+
+    inputEl2.addEventListener('input', () => {
+      updateEditorStats2();
+      if (autoParseEl.checked) parseDebounced();
+    });
+
+    inputEl2.addEventListener('scroll', () => {
+      lineNumbers2.scrollTop = inputEl2.scrollTop;
+    });
 
     parseBtn.addEventListener('click', parseAndRender);
     const parseDebounced = debounce(parseAndRender, 500);
@@ -1257,15 +1592,23 @@
 
     clearBtn.addEventListener('click', () => {
       inputEl.value = '';
+      inputEl2.value = '';
       treeEl.innerHTML = '';
       lastParsed = null;
+      lastParsed2 = null;
       selected = null;
       filterSnapshot = null;
       searchInput.value = '';
       matchCountEl.textContent = '0';
       selectedPathEl.textContent = '-';
+      diffMatches = [];
+      currentDiffIndex = -1;
+      currentDiffIndexEl.textContent = '0';
+      totalDiffCountEl.textContent = '0';
       setStatus('OK', '已清空');
       showToast('已清空');
+      updateEditorStats();
+      updateEditorStats2();
     });
 
     expandAllBtn.addEventListener('click', () => {
