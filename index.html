@@ -169,27 +169,150 @@
       flex: 1;
       min-height: 0;
       display: flex;
-      flex-direction: column;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    /* 模拟行号 */
+    .line-numbers {
+      padding: 16px 8px;
+      background: var(--hover);
+      border-right: 1px solid var(--border);
+      color: var(--muted);
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.6;
+      user-select: none;
+      min-width: 40px;
+      overflow: hidden;
+      white-space: pre;
     }
 
     textarea {
-      width: 100%;
+      flex: 1;
       height: 100%;
-      background: var(--bg);
+      background: transparent;
       color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      border: none;
       padding: 16px;
       font-family: var(--font-mono);
       font-size: 14px;
       resize: none;
       outline: none;
       line-height: 1.6;
-      transition: border-color 0.2s;
+      white-space: pre;
+      overflow-x: auto;
     }
 
-    textarea:focus {
-      border-color: var(--accent);
+    .editor-stats {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 4px 12px;
+      background: var(--hover);
+      border-top: 1px solid var(--border);
+    }
+
+    /* 搜索匹配高亮 */
+    .search-match-text {
+      background: #fbbf24;
+      color: #000;
+      border-radius: 2px;
+    }
+
+    /* 右键菜单 */
+    .context-menu {
+      position: fixed;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+      padding: 4px;
+      z-index: 2000;
+      display: none;
+      min-width: 160px;
+    }
+
+    .context-menu-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .context-menu-item:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* 多格式复制下拉 */
+    .copy-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .copy-options {
+      position: absolute;
+      bottom: 100%;
+      right: 0;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      display: none;
+      flex-direction: column;
+      margin-bottom: 4px;
+      z-index: 100;
+      min-width: 200px;
+    }
+
+    .copy-options::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      height: 10px;
+      background: transparent;
+    }
+
+    .copy-dropdown:hover .copy-options {
+      display: flex;
+    }
+
+    .copy-option {
+      padding: 8px 12px;
+      font-size: 12px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .copy-option:hover {
+      background: var(--hover);
+    }
+
+    /* 搜索结果跳转 */
+    .search-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 8px;
+    }
+
+    /* 响应式抽屉 */
+    @media (max-width: 768px) {
+      .panes { flex-direction: column; }
+      .pane-left { display: none; } /* 默认隐藏编辑区 */
+      .pane-left.active { display: flex; }
+      .mobile-toggle { display: block; }
     }
 
     .controls {
@@ -513,20 +636,22 @@
             </label>
           </div>
           <div class="editor-container">
+            <div class="line-numbers" id="line-numbers">1</div>
             <textarea id="json-input" spellcheck="false" placeholder="在此粘贴 JSON 代码...">{
-  "title": "JSON 结构浏览器",
-  "version": "2.0",
+  "title": "JSON Viewer Pro",
+  "version": "3.0",
   "features": [
-    "高性能树渲染",
-    "语义化搜索",
-    "主题自由切换",
-    "快捷键支持"
-  ],
-  "author": {
-    "name": "Codex",
-    "links": ["github.com/json"]
-  }
+    "分块异步渲染 (支持大文件)",
+    "编辑器行号与统计",
+    "搜索结果高亮与导航",
+    "多格式路径复制",
+    "节点右键菜单"
+  ]
 }</textarea>
+          </div>
+          <div class="editor-stats">
+            <span id="char-count">字符: 0</span>
+            <span id="line-count">行数: 1</span>
           </div>
           <div class="controls">
             <button id="open-btn" class="secondary" type="button">📂 打开文件</button>
@@ -549,14 +674,25 @@
             <div class="search-container">
               <span>🔍</span>
               <input id="search-input" type="text" placeholder="搜索 Key 或 Value..." autocomplete="off" />
+              <div class="search-nav">
+                <button id="search-prev" class="ghost" style="padding: 2px 4px;" title="上一个 (Shift+Enter)">↑</button>
+                <button id="search-next" class="ghost" style="padding: 2px 4px;" title="下一个 (Enter)">↓</button>
+              </div>
               <button id="search-clear" class="ghost" style="padding: 2px 6px;" type="button">✕</button>
             </div>
-            <span class="status">匹配: <strong id="match-count">0</strong></span>
+            <span class="status"><strong id="current-match-index">0</strong> / <span id="match-count">0</span></span>
           </div>
           <div class="info-bar">
-            <span>选中路径:</span>
+            <span>路径:</span>
             <div class="path-display" id="selected-path">-</div>
-            <button id="copy-path" class="secondary" style="padding: 4px 8px;" type="button">复制路径</button>
+            <div class="copy-dropdown">
+              <button id="copy-path" class="secondary" style="padding: 4px 8px;">📋 复制路径</button>
+              <div class="copy-options">
+                <div class="copy-option" data-format="pointer">JSON Pointer (/a/b/0)</div>
+                <div class="copy-option" data-format="dot">点号路径 (a.b[0])</div>
+                <div class="copy-option" data-format="bracket">括号路径 (['a']['b'][0])</div>
+              </div>
+            </div>
             <button id="copy-value" class="secondary" style="padding: 4px 8px;" type="button">复制值</button>
           </div>
           <ul class="tree" id="json-tree"></ul>
@@ -565,6 +701,12 @@
     </div>
   </div>
   <div id="toast" class="toast">已复制到剪贴板</div>
+  <div id="context-menu" class="context-menu">
+    <div class="context-menu-item" id="cm-expand">↔️ 展开子树</div>
+    <div class="context-menu-item" id="cm-collapse">⬅️ 折叠子树</div>
+    <div class="context-menu-item" id="cm-copy-key">🔑 复制键 (Key)</div>
+    <div class="context-menu-item" id="cm-copy-value">📋 复制值 (Value)</div>
+  </div>
 
 <script>
     const inputEl = document.getElementById('json-input');
@@ -601,6 +743,39 @@
     let lastParsed = null;
     let selected = null;
     let filterSnapshot = null;
+    let searchMatches = [];
+    let currentMatchIndex = -1;
+
+    // --- 实用工具函数 ---
+    const valueType = (val) => {
+      if (val === null) return 'null';
+      if (Array.isArray(val)) return 'array';
+      return typeof val;
+    };
+
+    const joinPath = (parent, key) => {
+      const k = String(key).replace(/~/g, '~0').replace(/\//g, '~1');
+      return parent === '/' ? `/${k}` : `${parent}/${k}`;
+    };
+
+    const debounce = (fn, ms) => {
+      let timeout;
+      return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn.apply(this, args), ms);
+      };
+    };
+
+    const applyTheme = (theme) => {
+      document.documentElement.dataset.theme = theme;
+      themeToggle.innerHTML = theme === 'light' ? '🌙 深色模式' : '☀️ 浅色模式';
+    };
+
+    const initTheme = () => {
+      const stored = localStorage.getItem(THEME_KEY) || 
+        (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      applyTheme(stored);
+    };
 
     const showToast = (message) => {
       const toast = document.getElementById('toast');
@@ -609,134 +784,293 @@
       setTimeout(() => toast.classList.remove('show'), 2000);
     };
 
-    const applyTheme = (theme) => {
-      document.documentElement.dataset.theme = theme;
-      themeToggle.textContent = theme === 'light' ? '🌙 深色模式' : '☀️ 浅色模式';
+    // --- 编辑器增强 ---
+    const lineNumbers = document.getElementById('line-numbers');
+    const charCountEl = document.getElementById('char-count');
+    const lineCountEl = document.getElementById('line-count');
+
+    const updateEditorStats = () => {
+      const text = inputEl.value;
+      const lines = text.split('\n');
+      charCountEl.textContent = `字符: ${text.length}`;
+      lineCountEl.textContent = `行数: ${lines.length}`;
+      
+      // 更新行号
+      const nums = lines.map((_, i) => i + 1).join('\n');
+      lineNumbers.textContent = nums;
     };
 
-    const initTheme = () => {
-      const stored = localStorage.getItem(THEME_KEY);
-      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-      const theme = stored || (prefersLight ? 'light' : 'dark');
-      applyTheme(theme);
-    };
+    inputEl.addEventListener('scroll', () => {
+      lineNumbers.scrollTop = inputEl.scrollTop;
+    });
 
-    const debounce = (fn, wait = 400) => {
-      let timer;
-      return (...args) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => fn(...args), wait);
-      };
-    };
+    inputEl.addEventListener('input', updateEditorStats);
 
-    const escapePointerToken = (token) => String(token).replaceAll('~', '~0').replaceAll('/', '~1');
-
-    const joinPath = (parent, token) => {
-      const part = escapePointerToken(token);
-      if (!parent || parent === '/') return '/' + part;
-      return parent + '/' + part;
-    };
-
-    const valueType = (value) => {
-      if (value === null) return 'null';
-      if (Array.isArray(value)) return 'array';
-      return typeof value;
-    };
-
-    const renderTree = (data, collapsedPaths = new Set()) => {
-      treeEl.innerHTML = '';
-      selected = null;
-      selectedPathEl.textContent = '-';
-      matchCountEl.textContent = '0';
-
-      const fragment = document.createDocumentFragment();
-      let nodeCount = 0;
-
-      const makeNode = (key, value, path, isRoot = false) => {
-        const node = document.createElement('li');
-        node.className = 'node';
-        node.dataset.path = path || '';
-
-        const header = document.createElement('div');
-        header.className = 'node-header';
-        header.tabIndex = 0;
-
-        const t = valueType(value);
-        node.dataset.type = t;
-
-        const caret = document.createElement('span');
-        caret.className = 'caret';
-        caret.textContent = (t === 'object' || t === 'array') ? '▼' : '';
-
-        const keyEl = document.createElement('span');
-        keyEl.className = 'node-key';
-        keyEl.textContent = isRoot ? 'root' : key;
-
-        header.append(caret, keyEl);
-
-        if (t === 'object' || t === 'array') {
-          const meta = document.createElement('span');
-          meta.className = 'node-meta';
-          const count = t === 'array' ? value.length : Object.keys(value).length;
-          meta.textContent = t === 'array' ? `[${count}]` : `{${count}}`;
-          header.append(meta);
-
-          const children = document.createElement('ul');
-          children.className = 'children';
-          node.append(header, children);
-          if (collapsedPaths.has(path)) node.classList.add('collapsed');
-        } else {
-          node.classList.add('leaf');
-          const valEl = document.createElement('span');
-          valEl.className = `node-value ${t}`;
-          valEl.textContent = t === 'string' ? `"${value}"` : String(value);
-          header.append(document.createTextNode(': '), valEl);
-          node.append(header);
-          node.dataset.value = String(value);
+    // --- 路径转换工具 ---
+    const formatPath = (pointer, format) => {
+      if (!pointer || pointer === '/') return format === 'pointer' ? '/' : 'root';
+      const tokens = pointer.split('/').slice(1).map(t => t.replace(/~1/g, '/').replace(/~0/g, '~'));
+      
+      if (format === 'pointer') return pointer;
+      
+      const result = tokens.map((token, i) => {
+        const isIndex = /^\d+$/.test(token);
+        if (format === 'dot') {
+          if (isIndex) return `[${token}]`;
+          return i === 0 ? token : `.${token}`;
         }
+        if (format === 'bracket') {
+          return isIndex ? `[${token}]` : `['${token}']`;
+        }
+        return token;
+      }).join('');
+      
+      return format === 'dot' ? result.replace(/^\./, '') : result;
+    };
 
-        const searchText = `${path || ''} ${key} ${t} ${node.dataset.value || ''}`.toLowerCase();
-        node.dataset.search = searchText;
-        nodeCount += 1;
-        return node;
-      };
+    // --- 分块异步渲染 (核心性能优化) ---
+    const requestIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 1));
 
-      const rootNode = makeNode('root', data, '/', true);
-      fragment.appendChild(rootNode);
+    const renderTreeAsync = (data, collapsedPaths = new Set()) => {
+      return new Promise((resolve) => {
+        treeEl.innerHTML = '';
+        selected = null;
+        if (selectedPathEl) selectedPathEl.textContent = '-';
+        if (matchCountEl) matchCountEl.textContent = '0';
+        const midxEl = document.getElementById('current-match-index');
+        if (midxEl) midxEl.textContent = '0';
 
-      const rootChildren = rootNode.querySelector(':scope > ul.children');
-      if (rootChildren) {
-        const stack = [{ parentUl: rootChildren, value: data, path: '/' }];
-        while (stack.length) {
-          const frame = stack.pop();
-          const { parentUl, value, path } = frame;
+        const CHUNK_SIZE = 400;
+        let totalNodes = 0;
+        const fragment = document.createDocumentFragment();
+
+        const makeNode = (key, value, path, isRoot = false) => {
+          const node = document.createElement('li');
+          node.className = 'node';
+          node.dataset.path = path || '';
           const t = valueType(value);
-          
-          if (t === 'array') {
-            for (let i = value.length - 1; i >= 0; i -= 1) {
-              const childPath = joinPath(path, i);
-              const node = makeNode(`[${i}]`, value[i], childPath);
-              parentUl.prepend(node);
-              const ul = node.querySelector(':scope > ul.children');
-              if (ul) stack.push({ parentUl: ul, value: value[i], path: childPath });
-            }
-          } else if (t === 'object') {
-            const keys = Object.keys(value);
-            for (let i = keys.length - 1; i >= 0; i -= 1) {
-              const k = keys[i];
-              const childPath = joinPath(path, k);
-              const node = makeNode(k, value[k], childPath);
-              parentUl.prepend(node);
-              const ul = node.querySelector(':scope > ul.children');
-              if (ul) stack.push({ parentUl: ul, value: value[k], path: childPath });
-            }
+          node.dataset.type = t;
+
+          const header = document.createElement('div');
+          header.className = 'node-header';
+          header.tabIndex = 0;
+
+          const caret = document.createElement('span');
+          caret.className = 'caret';
+          caret.textContent = (t === 'object' || t === 'array') ? '▼' : '';
+
+          const keyEl = document.createElement('span');
+          keyEl.className = 'node-key';
+          keyEl.textContent = isRoot ? 'root' : key;
+
+          header.append(caret, keyEl);
+
+          if (t === 'object' || t === 'array') {
+            const meta = document.createElement('span');
+            meta.className = 'node-meta';
+            const count = t === 'array' ? value.length : Object.keys(value).length;
+            meta.textContent = t === 'array' ? `[${count}]` : `{${count}}`;
+            header.append(meta);
+
+            const children = document.createElement('ul');
+            children.className = 'children';
+            node.append(header, children);
+            if (collapsedPaths.has(path)) node.classList.add('collapsed');
+            return { node, children };
+          } else {
+            node.classList.add('leaf');
+            const valEl = document.createElement('span');
+            valEl.className = `node-value ${t}`;
+            valEl.textContent = t === 'string' ? `"${value}"` : String(value);
+            header.append(document.createTextNode(': '), valEl);
+            node.append(header);
+            node.dataset.value = String(value);
+            return { node };
           }
-        }
+        };
+
+        const root = makeNode('root', data, '/', true);
+        fragment.appendChild(root.node);
+        treeEl.appendChild(fragment); 
+        
+        const stack = root.children ? [{ parentUl: root.children, value: data, path: '/' }] : [];
+        
+        const processChunk = () => {
+          let processed = 0;
+          while (stack.length > 0 && processed < CHUNK_SIZE) {
+            const frame = stack.pop();
+            const { parentUl, value, path } = frame;
+            const t = valueType(value);
+            
+            if (t === 'array') {
+              for (let i = value.length - 1; i >= 0; i--) {
+                const cp = joinPath(path, i);
+                const res = makeNode(`[${i}]`, value[i], cp);
+                parentUl.prepend(res.node);
+                if (res.children) stack.push({ parentUl: res.children, value: value[i], path: cp });
+                totalNodes++;
+              }
+            } else if (t === 'object') {
+              const keys = Object.keys(value);
+              for (let i = keys.length - 1; i >= 0; i--) {
+                const k = keys[i];
+                const cp = joinPath(path, k);
+                const res = makeNode(k, value[k], cp);
+                parentUl.prepend(res.node);
+                if (res.children) stack.push({ parentUl: res.children, value: value[k], path: cp });
+                totalNodes++;
+              }
+            }
+            processed++;
+          }
+
+          if (stack.length > 0) {
+            requestIdle(processChunk);
+          } else {
+            if (searchInput.value) applyFilter(searchInput.value);
+            resolve({ nodeCount: totalNodes + 1 });
+          }
+        };
+
+        if (stack.length > 0) processChunk();
+        else resolve({ nodeCount: 1 });
+      });
+    };
+
+    // --- 搜索增强 (高亮 & 导航) ---
+    const applyFilter = (queryRaw) => {
+      const query = (queryRaw || '').trim().toLowerCase();
+      const nodes = Array.from(treeEl.querySelectorAll('li.node'));
+      searchMatches = [];
+      currentMatchIndex = -1;
+
+      if (!query) {
+        nodes.forEach(n => {
+          n.classList.remove('filtered-out', 'match');
+          const keyEl = n.querySelector('.node-key');
+          if (keyEl) keyEl.innerHTML = keyEl.textContent;
+          const valEl = n.querySelector('.node-value');
+          if (valEl) valEl.innerHTML = valEl.textContent;
+          
+          if (filterSnapshot && !n.classList.contains('leaf')) {
+            n.classList.toggle('collapsed', filterSnapshot.collapsedPaths.has(n.dataset.path));
+          }
+        });
+        filterSnapshot = null;
+        document.getElementById('match-count').textContent = '0';
+        document.getElementById('current-match-index').textContent = '0';
+        return;
       }
 
-      treeEl.appendChild(fragment);
-      return { nodeCount };
+      if (!filterSnapshot) {
+        filterSnapshot = { collapsedPaths: collectCollapsedPaths() };
+      }
+
+      nodes.forEach(n => {
+        const keyEl = n.querySelector('.node-key');
+        const valEl = n.querySelector('.node-value');
+        let matched = false;
+
+        const highlight = (el) => {
+          const text = el.textContent;
+          const idx = text.toLowerCase().indexOf(query);
+          if (idx > -1) {
+            matched = true;
+            const before = text.substring(0, idx);
+            const mid = text.substring(idx, idx + query.length);
+            const after = text.substring(idx + query.length);
+            el.innerHTML = `${before}<span class="search-match-text">${mid}</span>${after}`;
+          } else {
+            el.innerHTML = text;
+          }
+        };
+
+        if (keyEl) highlight(keyEl);
+        if (valEl) highlight(valEl);
+
+        if (matched) {
+          n.classList.add('match');
+          n.classList.remove('filtered-out');
+          searchMatches.push(n);
+          
+          let cur = n.parentElement.closest('li.node');
+          while (cur) {
+            cur.classList.remove('filtered-out', 'collapsed');
+            cur = cur.parentElement.closest('li.node');
+          }
+        } else {
+          n.classList.remove('match');
+          n.classList.add('filtered-out');
+        }
+      });
+
+      document.getElementById('match-count').textContent = searchMatches.length;
+      if (searchMatches.length > 0) {
+        navigateSearch(1);
+      }
     };
+
+    const navigateSearch = (dir) => {
+      if (searchMatches.length === 0) return;
+      
+      if (currentMatchIndex > -1) {
+        searchMatches[currentMatchIndex].classList.remove('selected');
+      }
+
+      currentMatchIndex = (currentMatchIndex + dir + searchMatches.length) % searchMatches.length;
+      const target = searchMatches[currentMatchIndex];
+      target.classList.add('selected');
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setSelected(target);
+      document.getElementById('current-match-index').textContent = currentMatchIndex + 1;
+    };
+
+    document.getElementById('search-next').onclick = () => navigateSearch(1);
+    document.getElementById('search-prev').onclick = () => navigateSearch(-1);
+
+    // --- 右键菜单 ---
+    const ctxMenu = document.getElementById('context-menu');
+    let ctxTargetNode = null;
+
+    treeEl.oncontextmenu = (e) => {
+      const header = e.target.closest('.node-header');
+      if (!header) return;
+      e.preventDefault();
+      ctxTargetNode = header.closest('li.node');
+      setSelected(ctxTargetNode);
+      
+      ctxMenu.style.display = 'block';
+      ctxMenu.style.left = e.clientX + 'px';
+      ctxMenu.style.top = e.clientY + 'px';
+    };
+
+    document.onclick = () => ctxMenu.style.display = 'none';
+
+    document.getElementById('cm-expand').onclick = () => {
+      ctxTargetNode.querySelectorAll('.node.collapsed').forEach(n => n.classList.remove('collapsed'));
+      ctxTargetNode.classList.remove('collapsed');
+    };
+    document.getElementById('cm-collapse').onclick = () => {
+      ctxTargetNode.querySelectorAll('.node:not(.leaf)').forEach(n => n.classList.add('collapsed'));
+      if (ctxTargetNode.dataset.path !== '/') ctxTargetNode.classList.add('collapsed');
+    };
+    document.getElementById('cm-copy-key').onclick = () => {
+      const key = ctxTargetNode.querySelector('.node-key').textContent;
+      writeClipboard(key);
+    };
+    document.getElementById('cm-copy-value').onclick = () => {
+      const val = findValueAtPointer(lastParsed, ctxTargetNode.dataset.path);
+      writeClipboard(JSON.stringify(val, null, 2));
+    };
+
+    // --- 多格式路径复制 ---
+    document.querySelectorAll('.copy-option').forEach(opt => {
+      opt.onclick = () => {
+        if (!selected) return showToast('请先选择一个节点');
+        const path = formatPath(selected.dataset.path, opt.dataset.format);
+        writeClipboard(path);
+      };
+    });
 
     const setStatus = (state, message) => {
       statusEl.innerHTML = '';
@@ -793,26 +1127,31 @@
       Array.from(treeEl.querySelectorAll('li.node.collapsed')).map((el) => el.dataset.path).filter(Boolean)
     );
 
-    const parseAndRender = () => {
+    const parseAndRender = async () => {
       const raw = inputEl.value.trim();
       if (!raw) {
         treeEl.innerHTML = '';
         lastParsed = null;
-        matchCountEl.textContent = '0';
-        selectedPathEl.textContent = '-';
+        if (matchCountEl) matchCountEl.textContent = '0';
+        if (selectedPathEl) selectedPathEl.textContent = '-';
         setStatus('OK', '等待输入...');
         return;
       }
       try {
-        const collapsed = filterSnapshot?.collapsedPaths || collectCollapsedPaths();
+        const collapsed = (filterSnapshot && filterSnapshot.collapsedPaths) || collectCollapsedPaths();
         const start = performance.now();
-        const parsed = JSON.parse(raw);
+        
+        const cleanRaw = raw.replace(/("(?:\\.|[^\\"])*")|\/\*[\s\S]*?\*\/|\/\/.*/g, (m, g1) => g1 || "");
+        
+        const parsed = JSON.parse(cleanRaw);
         const ms = Math.max(0, performance.now() - start);
         lastParsed = parsed;
-        const { nodeCount } = renderTree(parsed, collapsed);
-        setStatus('OK', `解析成功 · ${nodeCount} 节点 · ${ms.toFixed(1)}ms`);
-        applyFilter(searchInput.value);
+        
+        setStatus('OK', `正在解析...`);
+        const result = await renderTreeAsync(parsed, collapsed);
+        setStatus('OK', `解析成功 · ${result.nodeCount} 节点 · ${ms.toFixed(1)}ms`);
       } catch (err) {
+        console.error('Parse error:', err);
         treeEl.innerHTML = '';
         lastParsed = null;
         const pos = extractErrorPosition(err.message);
@@ -821,7 +1160,7 @@
           setStatus('ERR', `语法错误: 第 ${line} 行, 第 ${col} 列`);
           focusErrorAt(pos);
         } else {
-          setStatus('ERR', err.message);
+          setStatus('ERR', `解析失败: ${err.message}`);
         }
       }
     };
@@ -899,29 +1238,20 @@
 
     pasteBtn.addEventListener('click', async () => {
       try {
-        // 先尝试聚焦输入框，这是个好的交互习惯
         inputEl.focus();
-        
-        // 检查协议
         if (location.protocol === 'file:') {
-          throw new Error('浏览器安全限制：本地文件无法直接通过按钮读取剪贴板，请直接使用快捷键 ⌘+V (Mac) 或 Ctrl+V (Win) 进行粘贴。');
+          showToast('本地文件模式请使用 Ctrl+V 粘贴');
+          return;
         }
-
         const text = await readClipboard();
         if (text) {
           inputEl.value = text;
+          updateEditorStats();
           parseAndRender();
           showToast('已从剪贴板粘贴');
         }
       } catch (err) {
-        console.error('Paste error:', err);
-        // 如果是权限问题或协议问题，给出明确引导
-        const msg = err.message.includes('permission') || location.protocol === 'file:'
-          ? '无法访问剪贴板，请直接使用快捷键 ⌘+V / Ctrl+V 粘贴'
-          : '粘贴失败: ' + err.message;
-        
-        setStatus('ERR', msg);
-        showToast('请直接使用快捷键粘贴');
+        setStatus('ERR', '无法访问剪贴板，请使用快捷键粘贴');
       }
     });
 
@@ -1034,47 +1364,14 @@
       }
     });
 
-    const applyFilter = (queryRaw) => {
-      const query = (queryRaw || '').trim().toLowerCase();
-      const nodes = Array.from(treeEl.querySelectorAll('li.node'));
-      if (!nodes.length) return;
-
-      if (!query) {
-        nodes.forEach((n) => n.classList.remove('filtered-out', 'match'));
-        matchCountEl.textContent = '0';
-        if (filterSnapshot) {
-          nodes.forEach((n) => {
-            if (!n.classList.contains('leaf')) {
-              n.classList.toggle('collapsed', filterSnapshot.collapsedPaths.has(n.dataset.path));
-            }
-          });
-          filterSnapshot = null;
-        }
-        return;
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        navigateSearch(e.shiftKey ? -1 : 1);
       }
+    });
 
-      if (!filterSnapshot) filterSnapshot = { collapsedPaths: collectCollapsedPaths() };
-
-      nodes.forEach((n) => n.classList.add('filtered-out'));
-      let count = 0;
-
-      for (const node of nodes) {
-        node.classList.remove('match');
-        if (!node.dataset.search?.includes(query)) continue;
-        
-        count += 1;
-        node.classList.add('match');
-        let cur = node;
-        while (cur && cur !== treeEl) {
-          cur.classList.remove('filtered-out');
-          if (!cur.classList.contains('leaf')) cur.classList.remove('collapsed');
-          cur = cur.parentElement?.closest('li.node');
-        }
-      }
-      matchCountEl.textContent = count;
-    };
-
-    searchInput.addEventListener('input', debounce(() => applyFilter(searchInput.value), 200));
+    searchInput.addEventListener('input', debounce(() => applyFilter(searchInput.value), 300));
     searchClear.addEventListener('click', () => {
       searchInput.value = '';
       applyFilter('');
@@ -1166,6 +1463,7 @@
     initTheme();
     initSplit();
     initAutoParse();
+    updateEditorStats();
     parseAndRender();
   </script>
 </body>
