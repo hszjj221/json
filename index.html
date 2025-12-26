@@ -71,8 +71,8 @@
       box-shadow: var(--shadow);
       border-radius: var(--radius);
       padding: 20px;
-      display: grid;
-      grid-template-rows: auto 1fr;
+      display: flex;
+      flex-direction: column;
       gap: 20px;
       overflow: hidden;
     }
@@ -116,6 +116,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       overflow: hidden;
+      flex: 1;
     }
 
     .pane {
@@ -340,10 +341,205 @@
 
     /* 响应式抽屉 */
     @media (max-width: 768px) {
-      .panes { flex-direction: column; }
-      .pane-left { display: none; } /* 默认隐藏编辑区 */
-      .pane-left.active { display: flex; }
-      .mobile-toggle { display: block; }
+      body {
+        padding: 0;
+      }
+
+      .shell {
+        height: 100vh;
+        border-radius: 0;
+        border: none;
+        padding: 12px;
+        gap: 12px;
+      }
+
+      .title h1 {
+        font-size: 20px;
+      }
+
+      .title .meta {
+        display: none;
+      }
+
+      .mobile-tabs {
+        display: flex;
+        background: var(--hover);
+        border-radius: 8px;
+        padding: 4px;
+        margin-bottom: 0;
+      }
+
+      .mobile-tab {
+        flex: 1;
+        padding: 8px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 6px;
+        color: var(--muted);
+        transition: all 0.2s;
+      }
+
+      .mobile-tab.active {
+        background: var(--panel);
+        color: var(--accent);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+
+      .panes {
+        flex-direction: row !important; /* Keep horizontal to allow switching */
+        border: none;
+        border-radius: 0;
+        height: 100%;
+      }
+
+      .pane {
+        display: none !important;
+        width: 100% !important;
+        flex: 1 !important;
+        flex-basis: 100% !important;
+      }
+
+      .pane.active {
+        display: flex !important;
+      }
+
+      .divider {
+        display: none !important;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: flex-start;
+      }
+
+      .controls > button, .controls > label {
+        flex: 1 1 auto;
+        min-width: 70px;
+        padding: 10px 4px;
+        font-size: 11px;
+        height: auto;
+      }
+
+      .controls .search-container {
+        flex: 1 1 100%;
+      }
+
+      .controls .status {
+        flex: 1 1 100%;
+        text-align: center;
+        padding: 4px;
+      }
+
+      .diff-nav {
+        flex: 1 1 100%;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px;
+      }
+      
+      .diff-nav.active {
+        display: flex;
+      }
+
+      .diff-count {
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      .diff-nav-btn {
+        padding: 6px 2px;
+        font-size: 10px;
+        flex: 1;
+      }
+
+      .controls .toggle {
+        justify-content: center;
+        padding: 6px;
+        background: var(--hover);
+        border-radius: 6px;
+      }
+
+      .editor-container {
+        flex: none !important;
+        flex-direction: column;
+        min-height: 300px;
+      }
+
+      .editor-unit {
+        height: 50% !important;
+        flex: none !important;
+      }
+
+      .editor-unit#unit-1:only-child, 
+      .editor-unit[style*="display: none"] + .editor-unit,
+      .editor-unit:not([style*="display: none"]):last-child:first-child {
+         height: 100% !important;
+      }
+      
+      /* If unit-2 is hidden, unit-1 should take full height */
+      #unit-1:not([style*="display: none"]) {
+        height: 100% !important;
+      }
+      /* If both are visible (diff mode), each takes 50% */
+      .shell.diff-active #unit-1, 
+      .shell.diff-active #unit-2 {
+        height: 50% !important;
+      }
+
+      .panel {
+        padding: 8px 0;
+        overflow-y: auto;
+      }
+
+      .tree {
+        flex: none !important;
+        min-height: 300px;
+      }
+
+      .info-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 10px;
+      }
+
+      .path-display {
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+        font-size: 11px;
+      }
+
+      .copy-dropdown, #copy-value {
+        width: 100%;
+      }
+
+      .copy-dropdown button, #copy-value {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .editor-stats {
+        padding: 8px 12px;
+      }
+
+      .toast {
+        bottom: 80px; /* Move up to avoid being covered by mobile UI */
+        left: 20px;
+        right: 20px;
+        text-align: center;
+      }
+    }
+
+    @media (min-width: 769px) {
+      .mobile-tabs {
+        display: none;
+      }
     }
 
     .controls {
@@ -630,28 +826,6 @@
       background: rgba(15, 23, 42, 0.06);
     }
 
-    @media (max-width: 900px) {
-      body {
-        padding: 10px;
-      }
-
-      .panes {
-        flex-direction: column;
-      }
-
-      .divider {
-        display: none;
-      }
-
-      .pane {
-        width: 100%;
-        flex-basis: auto !important;
-      }
-
-      .shell {
-        height: calc(100vh - 20px);
-      }
-    }
   </style>
 </head>
 <body>
@@ -663,8 +837,12 @@
         <button id="theme-toggle" class="secondary" type="button">🌓 切换主题</button>
       </div>
     </div>
+    <div class="mobile-tabs" id="mobile-tabs">
+      <div class="mobile-tab active" data-target="pane-left">编辑输入</div>
+      <div class="mobile-tab" data-target="pane-right">预览结构</div>
+    </div>
     <div class="panes" id="panes">
-      <div class="pane" id="pane-left">
+      <div class="pane active" id="pane-left">
         <section class="panel">
           <div class="panel-head">
             <h2>输入 JSON</h2>
@@ -804,6 +982,23 @@
     const diffNavEl = document.getElementById('diff-navigation');
     const totalDiffCountEl = document.getElementById('total-diff-count');
     const currentDiffIndexEl = document.getElementById('current-diff-index');
+    const shellEl = document.querySelector('.shell');
+    const mobileTabs = document.getElementById('mobile-tabs');
+    const mobileTabItems = document.querySelectorAll('.mobile-tab');
+
+    // --- 移动端标签页切换 ---
+    mobileTabItems.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const targetId = tab.dataset.target;
+        mobileTabItems.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        document.querySelectorAll('.pane').forEach(p => {
+          p.classList.remove('active');
+          if (p.id === targetId) p.classList.add('active');
+        });
+      });
+    });
 
     const THEME_KEY = 'json-viewer-theme';
     const SPLIT_KEY = 'json-viewer-split';
@@ -1274,6 +1469,14 @@
     const navigateSearch = (dir) => {
       if (searchMatches.length === 0) return;
       
+      // 移动端自动切换到预览标签
+      if (window.innerWidth <= 768) {
+        const viewerTab = document.querySelector('.mobile-tab[data-target="pane-right"]');
+        if (viewerTab && !viewerTab.classList.contains('active')) {
+          viewerTab.click();
+        }
+      }
+
       if (currentMatchIndex > -1) {
         searchMatches[currentMatchIndex].classList.remove('selected');
       }
@@ -1289,6 +1492,14 @@
     const navigateDiff = (index) => {
       if (diffMatches.length === 0) return;
       
+      // 移动端自动切换到预览标签
+      if (window.innerWidth <= 768) {
+        const viewerTab = document.querySelector('.mobile-tab[data-target="pane-right"]');
+        if (viewerTab && !viewerTab.classList.contains('active')) {
+          viewerTab.click();
+        }
+      }
+
       currentDiffIndex = (index + diffMatches.length) % diffMatches.length;
       const target = diffMatches[currentDiffIndex];
       
@@ -1329,6 +1540,35 @@
     };
 
     document.onclick = () => ctxMenu.style.display = 'none';
+
+    // --- 移动端长按菜单支持 ---
+    let touchTimer = null;
+    treeEl.addEventListener('touchstart', (e) => {
+      const header = e.target.closest('.node-header');
+      if (!header) return;
+      
+      touchTimer = setTimeout(() => {
+        const node = header.closest('li.node');
+        setSelected(node);
+        ctxTargetNode = node;
+        
+        const touch = e.touches[0];
+        ctxMenu.style.display = 'block';
+        ctxMenu.style.left = touch.clientX + 'px';
+        ctxMenu.style.top = touch.clientY + 'px';
+        
+        // 震动反馈 (如果支持)
+        if (navigator.vibrate) navigator.vibrate(50);
+      }, 600);
+    });
+
+    treeEl.addEventListener('touchend', () => {
+      if (touchTimer) clearTimeout(touchTimer);
+    });
+
+    treeEl.addEventListener('touchmove', () => {
+      if (touchTimer) clearTimeout(touchTimer);
+    });
 
     document.getElementById('cm-expand').onclick = () => {
       ctxTargetNode.querySelectorAll('.node.collapsed').forEach(n => n.classList.remove('collapsed'));
@@ -1411,7 +1651,7 @@
       Array.from(treeEl.querySelectorAll('li.node.collapsed')).map((el) => el.dataset.path).filter(Boolean)
     );
 
-    const parseAndRender = async () => {
+    const parseAndRender = async (e) => {
       const raw = inputEl.value.trim();
       const raw2 = isDiffMode ? inputEl2.value.trim() : null;
 
@@ -1423,6 +1663,14 @@
         if (selectedPathEl) selectedPathEl.textContent = '-';
         setStatus('OK', '等待输入...');
         return;
+      }
+
+      // 移动端自动切换到预览标签 (如果是点击按钮触发)
+      if (e && e.type === 'click' && window.innerWidth <= 768) {
+        const viewerTab = document.querySelector('.mobile-tab[data-target="pane-right"]');
+        if (viewerTab && !viewerTab.classList.contains('active')) {
+          viewerTab.click();
+        }
       }
 
       try {
@@ -1471,6 +1719,7 @@
     diffBtn.addEventListener('click', () => {
       isDiffMode = !isDiffMode;
       unit2.style.display = isDiffMode ? 'flex' : 'none';
+      shellEl.classList.toggle('diff-active', isDiffMode);
       diffBtn.classList.toggle('primary', isDiffMode);
       diffBtn.classList.toggle('secondary', !isDiffMode);
       diffBtn.innerHTML = isDiffMode ? '🔍 退出对比' : '🔍 对比模式';
