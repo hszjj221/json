@@ -826,6 +826,99 @@
       background: rgba(15, 23, 42, 0.06);
     }
 
+    /* 解析进度条 */
+    .progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.3s ease;
+      z-index: 3000;
+      width: 0%;
+    }
+
+    .progress-bar.active {
+      animation: progress-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes progress-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    /* 帮助面板 */
+    .help-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      z-index: 2500;
+      min-width: 400px;
+      max-width: 90vw;
+      display: none;
+    }
+
+    .help-panel.show {
+      display: block;
+    }
+
+    .help-panel h3 {
+      margin: 0 0 16px 0;
+      color: var(--accent);
+    }
+
+    .help-panel .shortcut-list {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px 16px;
+      font-size: 13px;
+    }
+
+    .help-panel .kbd {
+      background: var(--hover);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .help-panel .close-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    .help-panel .close-btn:hover {
+      color: var(--text);
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2400;
+      display: none;
+    }
+
+    .overlay.show {
+      display: block;
+    }
+
   </style>
 </head>
 <body>
@@ -888,6 +981,7 @@
           </div>
           <div class="controls">
             <button id="open-btn" class="secondary" type="button">📂 打开文件</button>
+            <button id="export-btn" class="secondary" type="button">💾 导出文件</button>
             <button id="paste-btn" class="secondary" type="button">📋 从剪贴板粘贴</button>
             <input id="file-input" type="file" accept=".json,application/json" hidden>
           </div>
@@ -906,13 +1000,28 @@
           <div class="controls">
             <div class="search-container">
               <span>🔍</span>
-              <input id="search-input" type="text" placeholder="搜索 Key 或 Value..." autocomplete="off" />
+              <input id="search-input" type="text" placeholder="搜索 Key 或 Value... (支持正则)" autocomplete="off" />
               <div class="search-nav">
                 <button id="search-prev" class="ghost" style="padding: 2px 4px;" title="上一个 (Shift+Enter)">↑</button>
                 <button id="search-next" class="ghost" style="padding: 2px 4px;" title="下一个 (Enter)">↓</button>
               </div>
               <button id="search-clear" class="ghost" style="padding: 2px 6px;" type="button">✕</button>
             </div>
+            <label class="toggle" style="font-size: 11px; margin-left: 8px;">
+              <input id="search-regex" type="checkbox"> 正则
+            </label>
+            <label class="toggle" style="font-size: 11px;">
+              <input id="search-case" type="checkbox"> 大小写
+            </label>
+            <select id="search-type" style="font-size: 11px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+              <option value="all">全部类型</option>
+              <option value="string">仅字符串</option>
+              <option value="number">仅数字</option>
+              <option value="boolean">仅布尔值</option>
+              <option value="null">仅 null</option>
+              <option value="object">仅对象</option>
+              <option value="array">仅数组</option>
+            </select>
             <span class="status"><strong id="current-match-index">0</strong> / <span id="match-count">0</span></span>
           </div>
           <div class="controls diff-nav" id="diff-navigation">
@@ -947,8 +1056,40 @@
     <div class="context-menu-item" id="cm-copy-key">🔑 复制键 (Key)</div>
     <div class="context-menu-item" id="cm-copy-value">📋 复制值 (Value)</div>
   </div>
+  <div id="progress-bar" class="progress-bar"></div>
+  <div id="overlay" class="overlay"></div>
+  <div id="help-panel" class="help-panel">
+    <button class="close-btn" onclick="toggleHelpPanel()">&times;</button>
+    <h3>⌨️ 快捷键</h3>
+    <div class="shortcut-list">
+      <span class="kbd">⌘/Ctrl + Enter</span><span>解析 JSON</span>
+      <span class="kbd">⌘/Ctrl + Shift + F</span><span>格式化</span>
+      <span class="kbd">⌘/Ctrl + Shift + M</span><span>压缩 JSON</span>
+      <span class="kbd">⌘/Ctrl + K</span><span>聚焦搜索框</span>
+      <span class="kbd">⌘/Ctrl + L</span><span>聚焦编辑器</span>
+      <span class="kbd">?</span><span>显示/隐藏此帮助</span>
+      <span class="kbd">Shift + Enter</span><span>搜索上一个</span>
+      <span class="kbd">Enter</span><span>搜索下一个</span>
+    </div>
+  </div>
 
 <script>
+    // ==================== 配置常量 ====================
+    const CONFIG = {
+      CHUNK_SIZE: 400,           // 分块渲染节点数
+      PARSE_DEBOUNCE: 500,       // 自动解析防抖延迟 (ms)
+      SEARCH_DEBOUNCE: 300,      // 搜索防抖延迟 (ms)
+      LONG_PRESS_DELAY: 600,     // 移动端长按延迟 (ms)
+      DIFF_DP_LIMIT: 250000,     // 完整 DP 算法的数组大小限制
+      MAX_HISTORY: 10,           // 最大历史记录数
+      TOAST_DURATION: 2000,      // Toast 显示时长 (ms)
+    };
+
+    const THEME_KEY = 'json-viewer-theme';
+    const SPLIT_KEY = 'json-viewer-split';
+    const AUTOPARSE_KEY = 'json-viewer-autoparse';
+    const HISTORY_KEY = 'json-viewer-history';
+
     const inputEl = document.getElementById('json-input');
     const inputEl2 = document.getElementById('json-input-2');
     const treeEl = document.getElementById('json-tree');
@@ -1000,10 +1141,6 @@
       });
     });
 
-    const THEME_KEY = 'json-viewer-theme';
-    const SPLIT_KEY = 'json-viewer-split';
-    const AUTOPARSE_KEY = 'json-viewer-autoparse';
-
     let lastParsed = null;
     let selected = null;
     let filterSnapshot = null;
@@ -1049,30 +1186,64 @@
       if (type1 === 'array') {
         const n = obj1.length;
         const m = obj2.length;
-        const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+        // 对于小数组使用完整 DP，大数组使用优化策略
+        const useFullDP = (n * m) <= CONFIG.DIFF_DP_LIMIT;
 
-        for (let i = 1; i <= n; i++) {
-          for (let j = 1; j <= m; j++) {
-            if (isDeepEqual(obj1[i - 1], obj2[j - 1])) {
-              dp[i][j] = dp[i - 1][j - 1] + 1;
-            } else {
-              dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+        let diffs = [];
+
+        if (useFullDP) {
+          // 小数组：使用完整 DP 以获得最准确的 diff
+          const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+
+          for (let i = 1; i <= n; i++) {
+            for (let j = 1; j <= m; j++) {
+              if (isDeepEqual(obj1[i - 1], obj2[j - 1])) {
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+              } else {
+                dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+              }
             }
           }
-        }
 
-        const diffs = [];
-        let i = n, j = m;
-        while (i > 0 || j > 0) {
-          if (i > 0 && j > 0 && isDeepEqual(obj1[i - 1], obj2[j - 1])) {
-            diffs.unshift({ type: 'equal', val: obj1[i - 1] });
-            i--; j--;
-          } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-            diffs.unshift({ type: 'added', newVal: obj2[j - 1] });
-            j--;
-          } else {
-            diffs.unshift({ type: 'removed', oldVal: obj1[i - 1] });
-            i--;
+          let i = n, j = m;
+          while (i > 0 || j > 0) {
+            if (i > 0 && j > 0 && isDeepEqual(obj1[i - 1], obj2[j - 1])) {
+              diffs.unshift({ type: 'equal', val: obj1[i - 1] });
+              i--; j--;
+            } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+              diffs.unshift({ type: 'added', newVal: obj2[j - 1] });
+              j--;
+            } else {
+              diffs.unshift({ type: 'removed', oldVal: obj1[i - 1] });
+              i--;
+            }
+          }
+        } else {
+          // 大数组：使用优化的 Myers diff 算法思路
+          // 从两端向中间找最长公共前缀和后缀
+          let start = 0;
+          while (start < n && start < m && isDeepEqual(obj1[start], obj2[start])) {
+            diffs.push({ type: 'equal', val: obj1[start] });
+            start++;
+          }
+
+          let endN = n - 1, endM = m - 1;
+          while (endN >= start && endM >= start && isDeepEqual(obj1[endN], obj2[endM])) {
+            endN--;
+            endM--;
+          }
+
+          // 中间部分使用简化的匹配
+          for (let i = start; i <= endN; i++) {
+            diffs.push({ type: 'removed', oldVal: obj1[i] });
+          }
+          for (let j = start; j <= endM; j++) {
+            diffs.push({ type: 'added', newVal: obj2[j] });
+          }
+
+          // 添加后缀
+          for (let k = endN + 1; k < n; k++) {
+            diffs.push({ type: 'equal', val: obj1[k] });
           }
         }
 
@@ -1138,16 +1309,93 @@
     };
 
     const initTheme = () => {
-      const stored = localStorage.getItem(THEME_KEY) || 
+      const stored = localStorage.getItem(THEME_KEY) ||
         (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       applyTheme(stored);
+
+      // 监听系统主题变化
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem(THEME_KEY)) {
+          applyTheme(e.matches ? 'dark' : 'light');
+        }
+      });
     };
 
     const showToast = (message) => {
       const toast = document.getElementById('toast');
       toast.textContent = message;
       toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2000);
+      setTimeout(() => toast.classList.remove('show'), CONFIG.TOAST_DURATION);
+    };
+
+    // --- 进度条 ---
+    const progressBar = document.getElementById('progress-bar');
+    const showProgress = () => {
+      progressBar.style.width = '0%';
+      progressBar.classList.add('active');
+    };
+    const updateProgress = (percent) => {
+      progressBar.style.width = `${Math.min(100, percent)}%`;
+    };
+    const hideProgress = () => {
+      progressBar.style.width = '100%';
+      setTimeout(() => {
+        progressBar.classList.remove('active');
+        progressBar.style.width = '0%';
+      }, 300);
+    };
+
+    // --- 帮助面板 ---
+    const helpPanel = document.getElementById('help-panel');
+    const overlay = document.getElementById('overlay');
+
+    window.toggleHelpPanel = () => {
+      const isOpen = helpPanel.classList.toggle('show');
+      overlay.classList.toggle('show', isOpen);
+    };
+
+    overlay.addEventListener('click', () => toggleHelpPanel());
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (helpPanel.classList.contains('show')) {
+          toggleHelpPanel();
+        }
+      }
+    });
+
+    // --- 导出功能 ---
+    const exportToFile = (data, filename) => {
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(`已导出: ${filename}`);
+    };
+
+    // --- 历史记录 ---
+    const saveToHistory = (jsonStr) => {
+      if (!jsonStr || jsonStr.length < 50) return; // 忽略太小的内容
+      try {
+        const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        // 移除重复项
+        const filtered = history.filter((h) => h !== jsonStr);
+        filtered.unshift(jsonStr);
+        const trimmed = filtered.slice(0, CONFIG.MAX_HISTORY);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+      } catch (e) {
+        console.warn('Failed to save history:', e);
+      }
+    };
+
+    const getHistory = () => {
+      try {
+        return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      } catch {
+        return [];
+      }
     };
 
     // --- 编辑器增强 ---
@@ -1233,7 +1481,7 @@
           diffNavEl.classList.remove('active');
         }
 
-        const CHUNK_SIZE = 400;
+        const CHUNK_SIZE = CONFIG.CHUNK_SIZE;
         let totalNodes = 0;
         const fragment = document.createDocumentFragment();
 
@@ -1395,10 +1643,14 @@
 
     // --- 搜索增强 (高亮 & 导航) ---
     const applyFilter = (queryRaw) => {
-      const query = (queryRaw || '').trim().toLowerCase();
       const nodes = Array.from(treeEl.querySelectorAll('li.node'));
       searchMatches = [];
       currentMatchIndex = -1;
+
+      const useRegex = document.getElementById('search-regex').checked;
+      const useCase = document.getElementById('search-case').checked;
+      const typeFilter = document.getElementById('search-type').value;
+      const query = (queryRaw || '').trim();
 
       if (!query) {
         nodes.forEach(n => {
@@ -1407,7 +1659,7 @@
           if (keyEl) keyEl.innerHTML = keyEl.textContent;
           const valEl = n.querySelector('.node-value');
           if (valEl) valEl.innerHTML = valEl.textContent;
-          
+
           if (filterSnapshot && !n.classList.contains('leaf')) {
             n.classList.toggle('collapsed', filterSnapshot.collapsedPaths.has(n.dataset.path));
           }
@@ -1416,6 +1668,18 @@
         document.getElementById('match-count').textContent = '0';
         document.getElementById('current-match-index').textContent = '0';
         return;
+      }
+
+      // 编译正则或准备搜索字符串
+      let regex = null;
+      if (useRegex) {
+        try {
+          const flags = useCase ? 'g' : 'gi';
+          regex = new RegExp(query, flags);
+        } catch (e) {
+          setStatus('ERR', `正则表达式错误: ${e.message}`);
+          return;
+        }
       }
 
       if (!filterSnapshot) {
@@ -1427,15 +1691,49 @@
         const valEl = n.querySelector('.node-value');
         let matched = false;
 
+        // 类型过滤
+        const nodeType = n.dataset.type;
+        if (typeFilter !== 'all' && nodeType !== typeFilter) {
+          n.classList.add('filtered-out');
+          n.classList.remove('match');
+          return;
+        }
+
         const highlight = (el) => {
           const text = el.textContent;
-          const idx = text.toLowerCase().indexOf(query);
-          if (idx > -1) {
-            matched = true;
-            const before = text.substring(0, idx);
-            const mid = text.substring(idx, idx + query.length);
-            const after = text.substring(idx + query.length);
-            el.innerHTML = `${before}<span class="search-match-text">${mid}</span>${after}`;
+          let matches = [];
+
+          if (regex) {
+            // 使用正则表达式匹配（找到所有匹配）
+            let match;
+            regex.lastIndex = 0; // 重置正则索引
+            while ((match = regex.exec(text)) !== null) {
+              matched = true;
+              matches.push({ index: match.index, length: match[0].length });
+            }
+          } else {
+            // 普通字符串搜索
+            const searchText = useCase ? text : text.toLowerCase();
+            const searchQuery = useCase ? query : query.toLowerCase();
+            let idx = searchText.indexOf(searchQuery);
+            while (idx !== -1) {
+              matched = true;
+              matches.push({ index: idx, length: query.length });
+              idx = searchText.indexOf(searchQuery, idx + 1);
+            }
+          }
+
+          // 应用高亮（从后往前，避免索引偏移）
+          if (matches.length > 0) {
+            let result = text;
+            matches.sort((a, b) => b.index - a.index);
+            matches.forEach(m => {
+              const before = result.substring(0, m.index);
+              const mid = result.substring(m.index, m.index + m.length);
+              const after = result.substring(m.index + m.length);
+              result = `${before}<span class="search-match-text">${mid}</span>${after}`;
+            });
+            el.innerHTML = result;
           } else {
             el.innerHTML = text;
           }
@@ -1448,7 +1746,7 @@
           n.classList.add('match');
           n.classList.remove('filtered-out');
           searchMatches.push(n);
-          
+
           let cur = n.parentElement.closest('li.node');
           while (cur) {
             cur.classList.remove('filtered-out', 'collapsed');
@@ -1546,20 +1844,20 @@
     treeEl.addEventListener('touchstart', (e) => {
       const header = e.target.closest('.node-header');
       if (!header) return;
-      
+
       touchTimer = setTimeout(() => {
         const node = header.closest('li.node');
         setSelected(node);
         ctxTargetNode = node;
-        
+
         const touch = e.touches[0];
         ctxMenu.style.display = 'block';
         ctxMenu.style.left = touch.clientX + 'px';
         ctxMenu.style.top = touch.clientY + 'px';
-        
+
         // 震动反馈 (如果支持)
         if (navigator.vibrate) navigator.vibrate(50);
-      }, 600);
+      }, CONFIG.LONG_PRESS_DELAY);
     });
 
     treeEl.addEventListener('touchend', () => {
@@ -1673,35 +1971,49 @@
         }
       }
 
+      // 显示进度条
+      showProgress();
+      updateProgress(10);
+
       try {
         const collapsed = (filterSnapshot && filterSnapshot.collapsedPaths) || collectCollapsedPaths();
         const start = performance.now();
-        
+
         const cleanJSON = (str) => str.replace(/("(?:\\.|[^\\"])*")|\/\*[\s\S]*?\*\/|\/\/.*/g, (m, g1) => g1 || "");
-        
+
+        updateProgress(30);
         const parsed = JSON.parse(cleanJSON(raw));
         lastParsed = parsed;
+
+        // 保存到历史记录
+        saveToHistory(raw);
 
         let renderData = parsed;
         let diffModeActive = false;
 
         if (isDiffMode) {
+          updateProgress(50);
           try {
             const parsed2 = JSON.parse(cleanJSON(raw2 || '{}'));
             lastParsed2 = parsed2;
             renderData = deepDiff(parsed, parsed2);
             diffModeActive = true;
           } catch (e) {
+            hideProgress();
             setStatus('ERR', `对比目标解析失败: ${e.message}`);
             return;
           }
         }
 
-        const ms = Math.max(0, performance.now() - start);
+        updateProgress(70);
         setStatus('OK', diffModeActive ? `对比完成` : `正在解析...`);
         const result = await renderTreeAsync(renderData, collapsed, diffModeActive);
+        updateProgress(100);
+        const ms = Math.max(0, performance.now() - start);
         setStatus('OK', (diffModeActive ? `对比完成` : `解析成功`) + ` · ${result.nodeCount} 节点 · ${ms.toFixed(1)}ms`);
+        hideProgress();
       } catch (err) {
+        hideProgress();
         console.error('Parse error:', err);
         treeEl.innerHTML = '';
         lastParsed = null;
@@ -1750,7 +2062,7 @@
     });
 
     parseBtn.addEventListener('click', parseAndRender);
-    const parseDebounced = debounce(parseAndRender, 500);
+    const parseDebounced = debounce(parseAndRender, CONFIG.PARSE_DEBOUNCE);
     inputEl.addEventListener('input', () => {
       if (!autoParseEl.checked) return;
       parseDebounced();
@@ -1818,6 +2130,16 @@
       inputEl.value = text;
       parseAndRender();
       fileInput.value = '';
+    });
+
+    const exportBtn = document.getElementById('export-btn');
+    exportBtn.addEventListener('click', () => {
+      if (lastParsed === null) {
+        showToast('请先解析 JSON');
+        return;
+      }
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+      exportToFile(JSON.stringify(lastParsed, null, 2), `json-export-${timestamp}.json`);
     });
 
     pasteBtn.addEventListener('click', async () => {
@@ -1963,11 +2285,20 @@
       }
     });
 
-    searchInput.addEventListener('input', debounce(() => applyFilter(searchInput.value), 300));
+    searchInput.addEventListener('input', debounce(() => applyFilter(searchInput.value), CONFIG.SEARCH_DEBOUNCE));
     searchClear.addEventListener('click', () => {
       searchInput.value = '';
       applyFilter('');
       searchInput.focus();
+    });
+
+    // 搜索选项变化时自动重新搜索
+    ['search-regex', 'search-case', 'search-type'].forEach(id => {
+      document.getElementById(id).addEventListener('change', () => {
+        if (searchInput.value) {
+          applyFilter(searchInput.value);
+        }
+      });
     });
 
     const findValueAtPointer = (data, pointer) => {
@@ -2030,6 +2361,14 @@
     window.addEventListener('keydown', (e) => {
       const isMac = navigator.platform.toLowerCase().includes('mac');
       const mod = isMac ? e.metaKey : e.ctrlKey;
+
+      // ? 键显示帮助（不需要按 modifier）
+      if (e.key === '?' && !mod && !e.target.matches('input, textarea')) {
+        e.preventDefault();
+        toggleHelpPanel();
+        return;
+      }
+
       if (!mod) return;
 
       if (e.key === 'Enter') {
