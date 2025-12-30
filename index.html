@@ -194,7 +194,7 @@
       font-size: 14px;
       line-height: 1.6;
       user-select: none;
-      min-width: 40px;
+      min-width: 50px;
       overflow: hidden;
       white-space: pre;
     }
@@ -255,6 +255,13 @@
       background: #fbbf24;
       color: #000;
       border-radius: 2px;
+    }
+
+    /* 路径搜索匹配样式 */
+    .node.path-match > .node-header {
+      background: rgba(34, 211, 238, 0.15);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
     }
 
     /* 右键菜单 */
@@ -1000,7 +1007,7 @@
           <div class="controls">
             <div class="search-container">
               <span>🔍</span>
-              <input id="search-input" type="text" placeholder="搜索 Key 或 Value... (支持正则)" autocomplete="off" />
+              <input id="search-input" type="text" placeholder="搜索... (Key/Value 或路径 /users/*)" autocomplete="off" />
               <div class="search-nav">
                 <button id="search-prev" class="ghost" style="padding: 2px 4px;" title="上一个 (Shift+Enter)">↑</button>
                 <button id="search-next" class="ghost" style="padding: 2px 4px;" title="下一个 (Enter)">↓</button>
@@ -1022,6 +1029,7 @@
               <option value="object">仅对象</option>
               <option value="array">仅数组</option>
             </select>
+            <span class="status" id="search-mode-indicator" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--hover);">内容</span>
             <span class="status"><strong id="current-match-index">0</strong> / <span id="match-count">0</span></span>
           </div>
           <div class="controls diff-nav" id="diff-navigation">
@@ -1150,6 +1158,8 @@
     let lastParsed2 = null;
     let diffMatches = [];
     let currentDiffIndex = -1;
+    let pathSearchMatches = [];
+    let currentPathMatchIndex = -1;
 
     // --- 实用工具函数 ---
     const valueType = (val) => {
@@ -1652,6 +1662,11 @@
       const typeFilter = document.getElementById('search-type').value;
       const query = (queryRaw || '').trim();
 
+      // 清除路径搜索状态
+      nodes.forEach(n => n.classList.remove('path-match'));
+      pathSearchMatches = [];
+      currentPathMatchIndex = -1;
+
       if (!query) {
         nodes.forEach(n => {
           n.classList.remove('filtered-out', 'match');
@@ -1665,6 +1680,7 @@
           }
         });
         filterSnapshot = null;
+        document.getElementById('search-mode-indicator').textContent = '内容';
         document.getElementById('match-count').textContent = '0';
         document.getElementById('current-match-index').textContent = '0';
         return;
@@ -1758,6 +1774,7 @@
         }
       });
 
+      document.getElementById('search-mode-indicator').textContent = '内容';
       document.getElementById('match-count').textContent = searchMatches.length;
       if (searchMatches.length > 0) {
         navigateSearch(1);
@@ -1789,7 +1806,7 @@
 
     const navigateDiff = (index) => {
       if (diffMatches.length === 0) return;
-      
+
       // 移动端自动切换到预览标签
       if (window.innerWidth <= 768) {
         const viewerTab = document.querySelector('.mobile-tab[data-target="pane-right"]');
@@ -1800,17 +1817,142 @@
 
       currentDiffIndex = (index + diffMatches.length) % diffMatches.length;
       const target = diffMatches[currentDiffIndex];
-      
+
       // 展开父节点
       let cur = target.parentElement.closest('li.node');
       while (cur) {
         cur.classList.remove('collapsed');
         cur = cur.parentElement.closest('li.node');
       }
-      
+
       target.scrollIntoView({ behavior: 'smooth', block: 'center' });
       setSelected(target);
       currentDiffIndexEl.textContent = currentDiffIndex + 1;
+    };
+
+    // --- 路径搜索功能 ---
+    // 将路径模式转换为正则表达式，支持通配符 *
+    const pathPatternToRegex = (pattern) => {
+      // 转义特殊字符，但保留 * 作为通配符
+      let regexStr = pattern
+        .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+        .replace(/\*/g, '[^/]*');
+      return new RegExp(`^${regexStr}$`);
+    };
+
+    // 检查路径是否匹配模式
+    const matchesPathPattern = (path, pattern) => {
+      const regex = pathPatternToRegex(pattern);
+      return regex.test(path);
+    };
+
+    // 检测搜索类型：路径搜索以 / 开头或包含 *
+    const isPathSearch = (query) => {
+      const trimmed = query.trim();
+      return trimmed.startsWith('/') || trimmed.includes('*');
+    };
+
+    // 统一搜索入口：自动识别搜索类型
+    const applyUnifiedSearch = (query) => {
+      if (isPathSearch(query)) {
+        applyPathSearch(query);
+      } else {
+        applyFilter(query);
+      }
+    };
+
+    const applyPathSearch = (pattern) => {
+      const nodes = Array.from(treeEl.querySelectorAll('li.node'));
+      pathSearchMatches = [];
+      currentPathMatchIndex = -1;
+
+      const trimmedPattern = (pattern || '').trim();
+
+      // 先清除普通搜索状态
+      nodes.forEach(n => {
+        n.classList.remove('match', 'filtered-out');
+        const keyEl = n.querySelector('.node-key');
+        if (keyEl) keyEl.innerHTML = keyEl.textContent;
+        const valEl = n.querySelector('.node-value');
+        if (valEl) valEl.innerHTML = valEl.textContent;
+      });
+      searchMatches = [];
+      currentMatchIndex = -1;
+      document.getElementById('match-count').textContent = '0';
+      document.getElementById('current-match-index').textContent = '0';
+
+      // 清除之前的路径搜索状态
+      nodes.forEach(n => {
+        n.classList.remove('path-match');
+      });
+
+      if (!trimmedPattern) {
+        document.getElementById('search-mode-indicator').textContent = '内容';
+        return;
+      }
+
+      // 标准化路径模式（确保以 / 开头）
+      let normalizedPattern = trimmedPattern;
+      if (!normalizedPattern.startsWith('/') && !normalizedPattern.startsWith('*')) {
+        normalizedPattern = '/' + normalizedPattern;
+      }
+
+      nodes.forEach(n => {
+        const nodePath = n.dataset.path || '';
+
+        if (matchesPathPattern(nodePath, normalizedPattern)) {
+          n.classList.add('path-match');
+          pathSearchMatches.push(n);
+
+          // 展开所有父节点
+          let cur = n.parentElement.closest('li.node');
+          while (cur) {
+            cur.classList.remove('collapsed');
+            cur.classList.remove('filtered-out');
+            cur = cur.parentElement.closest('li.node');
+          }
+        }
+      });
+
+      document.getElementById('search-mode-indicator').textContent = '路径';
+      document.getElementById('match-count').textContent = pathSearchMatches.length;
+      if (pathSearchMatches.length > 0) {
+        navigatePathSearch(1);
+      } else {
+        showToast(`未找到匹配路径: ${normalizedPattern}`);
+      }
+    };
+
+    const navigatePathSearch = (dir) => {
+      if (pathSearchMatches.length === 0) return;
+
+      // 移动端自动切换到预览标签
+      if (window.innerWidth <= 768) {
+        const viewerTab = document.querySelector('.mobile-tab[data-target="pane-right"]');
+        if (viewerTab && !viewerTab.classList.contains('active')) {
+          viewerTab.click();
+        }
+      }
+
+      if (currentPathMatchIndex > -1) {
+        pathSearchMatches[currentPathMatchIndex].classList.remove('selected');
+      }
+
+      currentPathMatchIndex = (currentPathMatchIndex + dir + pathSearchMatches.length) % pathSearchMatches.length;
+      const target = pathSearchMatches[currentPathMatchIndex];
+      target.classList.add('selected');
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setSelected(target);
+      document.getElementById('current-match-index').textContent = currentPathMatchIndex + 1;
+    };
+
+    // 统一导航函数：根据当前搜索模式调用对应导航
+    const navigateUnifiedSearch = (dir) => {
+      if (pathSearchMatches.length > 0) {
+        navigatePathSearch(dir);
+      } else if (searchMatches.length > 0) {
+        navigateSearch(dir);
+      }
     };
 
     document.getElementById('diff-first').onclick = () => navigateDiff(0);
@@ -1818,8 +1960,8 @@
     document.getElementById('diff-prev').onclick = () => navigateDiff(currentDiffIndex - 1);
     document.getElementById('diff-next').onclick = () => navigateDiff(currentDiffIndex + 1);
 
-    document.getElementById('search-next').onclick = () => navigateSearch(1);
-    document.getElementById('search-prev').onclick = () => navigateSearch(-1);
+    document.getElementById('search-next').onclick = () => navigateUnifiedSearch(1);
+    document.getElementById('search-prev').onclick = () => navigateUnifiedSearch(-1);
 
     // --- 右键菜单 ---
     const ctxMenu = document.getElementById('context-menu');
@@ -2073,6 +2215,7 @@
         if (!inputEl.value.trim()) return;
         const parsed = JSON.parse(inputEl.value);
         inputEl.value = JSON.stringify(parsed, null, 2);
+        updateEditorStats();
         parseAndRender();
         showToast('已格式化');
       } catch (err) {
@@ -2085,6 +2228,7 @@
         if (!inputEl.value.trim()) return;
         const parsed = JSON.parse(inputEl.value);
         inputEl.value = JSON.stringify(parsed);
+        updateEditorStats();
         parseAndRender();
         showToast('已压缩');
       } catch (err) {
@@ -2096,7 +2240,7 @@
       try {
         if (!inputEl.value.trim()) return;
         const parsed = JSON.parse(inputEl.value);
-        
+
         const sortObject = (obj) => {
           if (obj === null || typeof obj !== 'object') return obj;
           if (Array.isArray(obj)) return obj.map(sortObject);
@@ -2107,6 +2251,7 @@
         };
 
         inputEl.value = JSON.stringify(sortObject(parsed), null, 2);
+        updateEditorStats();
         parseAndRender();
         showToast('键已按字母顺序排序');
       } catch (err) {
@@ -2128,6 +2273,7 @@
       if (!file) return;
       const text = await file.text();
       inputEl.value = text;
+      updateEditorStats();
       parseAndRender();
       fileInput.value = '';
     });
@@ -2176,6 +2322,10 @@
       currentDiffIndex = -1;
       currentDiffIndexEl.textContent = '0';
       totalDiffCountEl.textContent = '0';
+      // 重置路径搜索
+      pathSearchMatches = [];
+      currentPathMatchIndex = -1;
+      document.getElementById('search-mode-indicator').textContent = '内容';
       setStatus('OK', '已清空');
       showToast('已清空');
       updateEditorStats();
@@ -2281,21 +2431,21 @@
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        navigateSearch(e.shiftKey ? -1 : 1);
+        navigateUnifiedSearch(e.shiftKey ? -1 : 1);
       }
     });
 
-    searchInput.addEventListener('input', debounce(() => applyFilter(searchInput.value), CONFIG.SEARCH_DEBOUNCE));
+    searchInput.addEventListener('input', debounce(() => applyUnifiedSearch(searchInput.value), CONFIG.SEARCH_DEBOUNCE));
     searchClear.addEventListener('click', () => {
       searchInput.value = '';
-      applyFilter('');
+      applyUnifiedSearch('');
       searchInput.focus();
     });
 
-    // 搜索选项变化时自动重新搜索
+    // 搜索选项变化时自动重新搜索（仅对内容搜索有效）
     ['search-regex', 'search-case', 'search-type'].forEach(id => {
       document.getElementById(id).addEventListener('change', () => {
-        if (searchInput.value) {
+        if (searchInput.value && !isPathSearch(searchInput.value)) {
           applyFilter(searchInput.value);
         }
       });
