@@ -1967,16 +1967,40 @@
     const ctxMenu = document.getElementById('context-menu');
     let ctxTargetNode = null;
 
+    // 智能定位右键菜单，确保不超出视口
+    const positionContextMenu = (x, y) => {
+      ctxMenu.style.display = 'block';
+      // 先显示才能获取尺寸
+      const menuRect = ctxMenu.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      // 水平定位：如果右边超出，则向左显示
+      let left = x;
+      if (x + menuRect.width > vw) {
+        left = x - menuRect.width;
+      }
+      // 垂直定位：如果下边超出，则向上显示
+      let top = y;
+      if (y + menuRect.height > vh) {
+        top = y - menuRect.height;
+      }
+      // 边界保护，确保不超出左上角
+      left = Math.max(8, left);
+      top = Math.max(8, top);
+
+      ctxMenu.style.left = left + 'px';
+      ctxMenu.style.top = top + 'px';
+    };
+
     treeEl.oncontextmenu = (e) => {
       const header = e.target.closest('.node-header');
       if (!header) return;
       e.preventDefault();
       ctxTargetNode = header.closest('li.node');
       setSelected(ctxTargetNode);
-      
-      ctxMenu.style.display = 'block';
-      ctxMenu.style.left = e.clientX + 'px';
-      ctxMenu.style.top = e.clientY + 'px';
+
+      positionContextMenu(e.clientX, e.clientY);
     };
 
     document.onclick = () => ctxMenu.style.display = 'none';
@@ -1993,9 +2017,7 @@
         ctxTargetNode = node;
 
         const touch = e.touches[0];
-        ctxMenu.style.display = 'block';
-        ctxMenu.style.left = touch.clientX + 'px';
-        ctxMenu.style.top = touch.clientY + 'px';
+        positionContextMenu(touch.clientX, touch.clientY);
 
         // 震动反馈 (如果支持)
         if (navigator.vibrate) navigator.vibrate(50);
